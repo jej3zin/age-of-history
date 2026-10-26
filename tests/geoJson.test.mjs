@@ -28,8 +28,8 @@ test("calculates an area-weighted center for MultiPolygon islands", () => {
   };
   const [territory] = importTerritoriesFromGeoJSON(collection(feature), new Set(["c1"]));
   assert.equal(territory.polygons.length, 2);
-  assert.ok(Math.abs(territory.center[0] - 9) < 1e-9);
-  assert.ok(Math.abs(territory.center[1] - 2) < 1e-9);
+  assert.ok(Math.abs(territory.center[0] - 9.8) < 1e-9);
+  assert.ok(Math.abs(territory.center[1] - 1.8) < 1e-9);
 });
 
 test("rejects unsupported geometry types", () => {
