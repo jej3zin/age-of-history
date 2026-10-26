@@ -88,5 +88,17 @@ export async function loadGame(): Promise<GameState | null> {
     throw new Error("Salvamento inválido ou incompatível. Inicie uma nova campanha.");
   }
 
+  if (state.citizenProfile) {
+    const profile = state.citizenProfile as Partial<GameState["citizenProfile"]>;
+    state.citizenProfile = {
+      name: typeof profile.name === "string" ? profile.name : "Cidadão",
+      profession: profile.profession === "Estudante" ? "Estudante" : "Trabalha",
+      family: typeof profile.family === "string" ? profile.family : "",
+      money: Number.isFinite(profile.money) ? profile.money as number : 500,
+      dailyIncome: Number.isFinite(profile.dailyIncome) ? profile.dailyIncome as number : (profile.profession === "Trabalha" ? 150 : 0),
+      dailyExpense: Number.isFinite(profile.dailyExpense) ? profile.dailyExpense as number : (profile.profession === "Estudante" ? 100 : 0) + (typeof profile.family === "string" && profile.family ? 75 : 0),
+    };
+  }
+
   return state as GameState;
 }
