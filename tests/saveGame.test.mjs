@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseCampaignFile, serializeCampaign } from "../src/persistence/saveGame.ts";
+import { migrateStoredRecord, parseCampaignFile, serializeCampaign } from "../src/persistence/saveGame.ts";
 
 function campaign(overrides = {}) {
   return {
@@ -57,4 +57,19 @@ test("rejeita referências territoriais e seleção inválidas", () => {
 test("rejeita buracos geométricos malformados", () => {
   const invalid = campaign({ territories: [{ ...campaign().territories[0], polygonHoles: [[[[1, 1], [2, 2]]]] }] });
   assert.throws(() => parseCampaignFile(JSON.stringify({ format: "age-of-history-campaign", formatVersion: 1, state: invalid })), /Campanha inválida/);
+});
+
+
+test("migra registros locais antigos preservando o estado válido", () => {
+  const legacy = campaign({ lastSavedAt: "2026-01-01T00:00:00.000Z" });
+  const migrated = migrateStoredRecord(legacy);
+  assert.equal(migrated.campaignName, legacy.campaignName);
+  assert.equal(migrated.schemaVersion, 1);
+});
+
+test("rejeita versão de esquema não suportada sem modificar o registro recebido", () => {
+  const legacy = campaign({ schemaVersion: 99 });
+  const before = structuredClone(legacy);
+  assert.throws(() => migrateStoredRecord(legacy), /registro original foi preservado/);
+  assert.deepEqual(legacy, before);
 });
