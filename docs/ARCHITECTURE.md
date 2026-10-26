@@ -7,7 +7,7 @@ Este documento registra a arquitetura atual do protótipo e as fronteiras que de
 - **Interface e navegação — `src/App.tsx`, `src/pages/`, `src/components/`**: controla páginas, seleção de país/território, opções da campanha, velocidade do tempo, importação de mapas e comandos de salvar/carregar. O portal usa `PortalPage` para início, exploração, sobre, detalhes do cenário, seleção da entidade e configuração final. O fluxo de configuração grava nome, cenário, modo, dificuldade e perfil de IA no estado da campanha; perfis externos de IA continuam sendo apenas metadados até existir uma integração real.
 - **Simulação — `src/game/simulation.ts`**: aplica as regras de avanço diário e os marcos semanais, mensais e anuais. As regras devem ser funções determinísticas: dado o mesmo estado e a mesma ação, devem produzir o mesmo resultado.
 - **Contratos de dados — `src/game/types.ts`**: define `GameState`, `Country`, `Territory` e `GameEvent`. Alterações nesses contratos precisam considerar campanhas salvas existentes.
-- **Cenário inicial — `src/data/scenario.ts`**: cria o estado inicial e os dados demonstrativos. Dados de cenário devem permanecer separados das regras de simulação.
+- **Cenário inicial — `src/data/scenario.ts`**: cria o estado inicial do protótipo e seus dados demonstrativos. O catálogo visual do portal fica separado em `src/data/portalScenarios.ts`; opções de dificuldade e perfil de IA ficam em `src/data/campaignOptions.ts`. O catálogo visual ainda não representa mapas históricos jogáveis reais.
 - **Mapa e importação — `src/map/WorldMap.tsx`, `src/map/geoJson.ts`**: desenha territórios e trata interação visual; o importador valida GeoJSON e converte feições em `Territory`. O mapa não deve alterar diretamente economia, população ou propriedade política.
 - **Persistência — `src/persistence/saveGame.ts`**: salva e carrega campanhas localmente. Mudanças no esquema precisam de normalização/migração para não quebrar saves anteriores.
 
@@ -31,9 +31,9 @@ Este documento registra a arquitetura atual do protótipo e as fronteiras que de
 
 ## Próximas fronteiras planejadas
 
-- Introduzir eventos de domínio e uma fila determinística antes de adicionar decisões que interrompam o tempo.
+- Conectar a fila determinística de `src/game/simulation.ts` aos sistemas de diplomacia, economia e guerra; a infraestrutura de prioridade/pausa já existe, mas esses subsistemas ainda não agendam eventos próprios.
 - Formalizar funções puras de regras e cobri-las com testes automatizados.
-- Adicionar validação de estado na fronteira de persistência e importação.
+- Manter a validação de estado na fronteira de persistência e importação, ampliando-a conforme novos campos e eventos forem adicionados.
 - Só mover cálculos para Web Workers quando medições demonstrarem necessidade e o contrato de mensagens estiver definido.
 
 ## Compatibilidade de salvamentos
@@ -44,7 +44,7 @@ A política e as versões atuais estão documentadas em [`docs/SAVE_COMPATIBILIT
 
 - O importador GeoJSON ainda ignora buracos internos de polígonos.
 - A seleção territorial usa as interações gráficas do PixiJS; os buracos internos e as partes desconectadas são preservados, mas a validação visual de geometrias complexas e enclaves sobrepostos ainda é necessária.
-- A simulação atual é demonstrativa e não representa ainda um modelo econômico ou demográfico completo.
+- A simulação atual é demonstrativa: relatórios agregados e ticks estão testados, mas tributação, dívida, cadeias produtivas, comércio, infraestrutura e dinâmica demográfica completa ainda não estão implementados. Os perfis externos de IA são metadados de configuração, sem integração de provedores.
 
 
 ## Organização de estilos e componentes
