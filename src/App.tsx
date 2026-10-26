@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createInitialState } from "./data/scenario";
 import { advanceOneDay } from "./game/simulation";
 import type { GameState } from "./game/types";
-import { loadGame, saveGame } from "./persistence/saveGame";
+import { loadGame, saveGame, parseCampaignFile, serializeCampaign } from "./persistence/saveGame";
 import HomePage from "./pages/HomePage";
 import GameplayPage from "./pages/GameplayPage";
 import CampaignSetupPage from "./pages/CampaignSetupPage";
@@ -111,7 +111,7 @@ export default function App() {
     setTimeSpeed(0);
     navigate("setup");
   };
-  async function save() {
+  async function importCampaign(file: File) {\n    setBusy(true);\n    try {\n      const imported = parseCampaignFile(await file.text());\n      setState(imported);\n      setTimeSpeed(0);\n      setNotice(`Campanha importada de ${file.name}. A simulação foi pausada.`);\n      navigate("gameplay");\n    } catch (error) {\n      setNotice("Falha ao importar campanha: " + (error instanceof Error ? error.message : "arquivo inválido"));\n    } finally { setBusy(false); }\n  }\n\n  function exportCampaign() {\n    try {\n      const blob = new Blob([serializeCampaign(state)], { type: "application/json;charset=utf-8" });\n      const url = URL.createObjectURL(blob);\n      const anchor = document.createElement("a");\n      anchor.href = url;\n      const safeName = state.campaignName.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "campanha";\n      anchor.download = `${safeName}-age-of-history.json`;\n      document.body.appendChild(anchor);\n      anchor.click();\n      anchor.remove();\n      window.setTimeout(() => URL.revokeObjectURL(url), 1000);\n      setNotice("Exportação da campanha preparada em arquivo JSON.");\n    } catch (error) {\n      setNotice("Não foi possível exportar: " + (error instanceof Error ? error.message : "erro desconhecido"));\n    }\n  }\n\n  async function save() {
     setBusy(true);
     try { await saveGame(state); setNotice("Campanha salva neste navegador."); }
     catch (error) { setNotice("Não foi possível salvar: " + (error instanceof Error ? error.message : "erro desconhecido")); }
@@ -134,5 +134,5 @@ export default function App() {
 
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
   if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
-  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} />;
+  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} />;
 }
