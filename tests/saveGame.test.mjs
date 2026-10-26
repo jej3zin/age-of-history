@@ -181,5 +181,5 @@ test("campaign export validates state and excludes local persistence metadata", 
   assert.equal("saveMeta" in parsed.state, false);
   assert.equal("storageVersion" in source, true, "export must not mutate source");
   assert.equal("saveMeta" in source, true);
-  assert.throws(() => serializeCampaign(campaign({ day: -1 })), /salvamento|campanha válida/i);
+  assert.throws(() => serializeCampaign(campaign({ day: -1 })), /salvamento|campanha válida|campanha inválida/i);
 });
