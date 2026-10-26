@@ -27,10 +27,46 @@ function parseOuterRing(value: unknown, name: string, index: number): MapPositio
     const a = openRing[i], b = openRing[(i + 1) % openRing.length];
     twiceArea += a[0] * b[1] - b[0] * a[1];
   }
-  if (openRing.length < 3 || Math.abs(twiceArea) <= 0) {
+  if (openRing.length < 3 || !Number.isFinite(twiceArea) || Math.abs(twiceArea) <= 0) {
     throw new Error(`Território "${name}" (feição ${index + 1}): polígono sem área válida.`);
   }
   return points;
+}
+
+/** Calcula o centróide geométrico de um anel fechado e sua área absoluta. */
+function ringCentroid(ring: MapPosition[]): { center: MapPosition; area: number } {
+  let twiceArea = 0;
+  let x = 0;
+  let y = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const a = ring[i], b = ring[i + 1];
+    const cross = a[0] * b[1] - b[0] * a[1];
+    twiceArea += cross;
+    x += (a[0] + b[0]) * cross;
+    y += (a[1] + b[1]) * cross;
+  }
+  const area = Math.abs(twiceArea / 2);
+  if (Math.abs(twiceArea) < Number.EPSILON) {
+    const points = ring.slice(0, -1);
+    return {
+      center: [
+        points.reduce((sum, point) => sum + point[0], 0) / points.length,
+        points.reduce((sum, point) => sum + point[1], 0) / points.length
+      ],
+      area: 0
+    };
+  }
+  return { center: [x / (3 * twiceArea), y / (3 * twiceArea)], area };
+}
+
+function polygonsCentroid(polygons: MapPosition[][]): MapPosition {
+  const centroids = polygons.map(ringCentroid);
+  const totalArea = centroids.reduce((sum, item) => sum + item.area, 0);
+  if (totalArea <= 0) return centroids[0]?.center ?? [0, 0];
+  return [
+    centroids.reduce((sum, item) => sum + item.center[0] * item.area, 0) / totalArea,
+    centroids.reduce((sum, item) => sum + item.center[1] * item.area, 0) / totalArea
+  ];
 }
 
 /** Importa Polygon e MultiPolygon; por enquanto, usa apenas os anéis externos (sem recortes internos/holes). */
@@ -65,17 +101,13 @@ export function importTerritoriesFromGeoJSON(input: unknown, validCountryIds?: S
     const id = typeof rawId === "string" || typeof rawId === "number" ? String(rawId).trim() : "";
     const name = typeof properties.name === "string" ? properties.name.trim() : "";
     const countryId = typeof properties.countryId === "string" ? properties.countryId.trim() : "";
-    if (!id || !name || !countryId) throw new Error(`Feição ${index + 1}: properties.id, properties.name e properties.countryId são obrigatórios.`);
+    if (!id || !name || !countryId) throw new Error("Feição " + (index + 1) + ": properties.id, properties.name e properties.countryId são obrigatórios.");
     if (seenIds.has(id)) throw new Error(`ID territorial duplicado: "${id}".`);
     if (validCountryIds && !validCountryIds.has(countryId)) throw new Error(`Território "${name}": countryId "${countryId}" não corresponde a nenhum país da campanha atual.`);
     seenIds.add(id);
 
     const polygons = rawRings.map(ring => parseOuterRing(ring, name, index));
-    const allOpenPoints = polygons.flatMap(ring => ring.slice(0, -1));
-    const center: MapPosition = [
-      allOpenPoints.reduce((sum, p) => sum + p[0], 0) / allOpenPoints.length,
-      allOpenPoints.reduce((sum, p) => sum + p[1], 0) / allOpenPoints.length
-    ];
+    const center = polygonsCentroid(polygons);
     const population = Number(properties.population ?? 0);
     const production = Number(properties.production ?? 0);
     if (!Number.isFinite(population) || population < 0 || !Number.isFinite(production) || production < 0) {
