@@ -27,12 +27,13 @@ type Props = {
   onLoadSlot: (id: string) => void;
   onRenameSlot: (id: string, name: string) => void;
   onDeleteSlot: (id: string) => void;
+  onExportRawSave: (id: string) => void;
 };
 
 export default function GameplayPage({
   state, notice, busy, timeSpeed, onSetTimeSpeed, onHome, onNewCampaign,
   onLoad, onSave, onNextDay, onSelectTerritory, onImportGeoJSON, onExportCampaign, onImportCampaign,
-  saveSlots, onRefreshSaveSlots, onSaveSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
+  saveSlots, onRefreshSaveSlots, onSaveSlot, onLoadSlot, onRenameSlot, onDeleteSlot, onExportRawSave,
 }: Props) {
   const [infoPanel, setInfoPanel] = useState<"territory" | "country" | null>(null);
   const [inspectedCountryId, setInspectedCountryId] = useState<string | null>(null);
@@ -105,7 +106,7 @@ export default function GameplayPage({
                     <strong>{slot.name}</strong>
                     <span>{slot.campaignName} · {formatDate(slot.date)} · Dia {slot.day + 1}</span>
                     <small>{slot.isCorrupt ? "Salvamento com erro · registro original preservado" : (slot.isAuto ? "Salvamento automático" : "Salvamento manual")} · {slot.savedAt === "Data não registrada" ? slot.savedAt : new Date(slot.savedAt).toLocaleString()}</small>
-                    {slot.isCorrupt && <small className="save-slot-error">{slot.recoveryMessage ?? "Não foi possível validar este salvamento. Ele não foi alterado."}</small>}
+                    {slot.isCorrupt && <><small className="save-slot-error">{slot.recoveryMessage ?? "Não foi possível validar este salvamento. Ele não foi alterado."}</small><button type="button" className="button secondary" disabled={busy} onClick={() => onExportRawSave(slot.id)}>Exportar dados brutos para recuperação</button></>}
                   </div>
                   <div className="save-slot-actions">
                     <button className="button secondary" disabled={busy || slot.isCorrupt} title={slot.isCorrupt ? "Este salvamento não pode ser carregado até ser recuperável." : undefined} onClick={() => onLoadSlot(slot.id)}>{slot.isCorrupt ? "Indisponível" : "Carregar"}</button>
