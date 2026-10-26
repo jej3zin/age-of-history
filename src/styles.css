@@ -55,3 +55,12 @@ body:has(.gameplay-shell) { overflow:hidden; }
   .gameplay-shell .map-legend { top:220px; }
   .gameplay-shell .side-column { max-height:35dvh; }
 }
+
+/* Detalhes da hierarquia territorial e controles temporais. */
+.city-list { margin-top:14px; padding-top:12px; border-top:1px solid #263440; }
+.city-list > .eyebrow { margin-bottom:8px; }
+.city-row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; color:#aebbc7; font-size:11px; border-bottom:1px solid #26313b; }
+.city-row:last-child { border-bottom:0; }
+.city-row strong { color:#e2eaf1; font-weight:600; }
+.gameplay-shell .time-running { color:#f0b475; white-space:nowrap; }
+.gameplay-shell .time-toggle { border-color:#536474; }
