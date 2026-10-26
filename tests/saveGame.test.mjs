@@ -215,3 +215,24 @@ test("validates a campaign before attempting IndexedDB persistence", async () =>
   }
   await assert.rejects(saveGame(campaign({ day: -1 })), /Campanha inválida/);
 });
+
+
+test("rejects invalid manual slot names before opening IndexedDB", async () => {
+  const { saveToSlot } = await import("../src/persistence/saveGame.ts");
+  await assert.rejects(saveToSlot(campaign(), "   "), /Informe um nome/);
+  await assert.rejects(saveToSlot(campaign(), "x".repeat(61)), /no máximo 60/);
+});
+
+test("protects autosave from manual rename and deletion", async () => {
+  const { renameSaveSlot, deleteSaveSlot } = await import("../src/persistence/saveGame.ts");
+  await assert.rejects(renameSaveSlot("autosave", "Novo nome"), /não pode ser renomeado/);
+  await assert.rejects(deleteSaveSlot("autosave"), /não pode ser excluído/);
+});
+
+test("rejects malformed manual slot identifiers before opening IndexedDB", async () => {
+  const { loadSaveSlot, renameSaveSlot, deleteSaveSlot, exportRawSaveRecord } = await import("../src/persistence/saveGame.ts");
+  await assert.rejects(loadSaveSlot("../autosave"), /Identificador de salvamento inválido/);
+  await assert.rejects(renameSaveSlot("../autosave", "Nome"), /Identificador de salvamento inválido/);
+  await assert.rejects(deleteSaveSlot("../autosave"), /Identificador de salvamento inválido/);
+  await assert.rejects(exportRawSaveRecord("../autosave"), /Identificador de salvamento inválido/);
+});
