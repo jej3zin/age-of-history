@@ -116,10 +116,10 @@ export function migrateStoredRecord(value: unknown): GameState {
     !Number.isInteger(state.pendingDecision.day) || state.pendingDecision.day < 0 || typeof state.pendingDecision.title !== "string" || !state.pendingDecision.title.trim() || typeof state.pendingDecision.description !== "string")) {
     throw new Error("Decisão pendente inválida no salvamento.");
   }
-  if (state.pendingDecision && ((state.eventQueue ?? []).some(event => event.id === state.pendingDecision!.id) || state.events.some(event => event.id === state.pendingDecision!.id))) {
+  if (state.pendingDecision && ((state.eventQueue ?? []).some(event => event.id === state.pendingDecision!.id) || (state.events ?? []).some(event => event.id === state.pendingDecision!.id))) {
     throw new Error("A decisão pendente precisa ter um identificador único na campanha.");
   }
-  if ((state.eventQueue ?? []).some(event => state.events.some(existing => existing.id === event.id))) {
+  if ((state.eventQueue ?? []).some(event => (state.events ?? []).some(existing => existing.id === event.id))) {
     throw new Error("A fila contém um evento que já está no histórico da campanha.");
   }
   const normalized = structuredClone(state) as GameState & { storageVersion?: unknown; saveMeta?: unknown };
