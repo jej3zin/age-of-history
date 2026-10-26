@@ -4,7 +4,8 @@ import { formatDate, formatMoney, formatNumber } from "../game/simulation";
 import { useEffect } from "react";
 import type { SaveSlot } from "../persistence/saveGame";
 import WorldMap from "../map/WorldMap";
-import StatCard from "../components/StatCard";
+import StatCard from "../components/ui/StatCard";
+import Header from "../components/header/Header";
 
 type Props = {
   state: GameState;
@@ -48,13 +49,7 @@ export default function GameplayPage({
 
   return (
     <main className="app-shell gameplay-shell">
-      <header className="topbar">
-        <button className="brand brand-button" onClick={onHome} aria-label="Voltar à página inicial">
-          <div className="brand-mark">AH</div>
-          <div><div className="brand-title">AGE OF HISTORY</div><div className="brand-subtitle">Campanha estratégica · v0.1</div></div>
-        </button>
-        <div className="campaign-meta"><span className="status-dot" /> Campanha local <span className="meta-divider" />{formatDate(state.date)}<span className="meta-divider" />Dia {state.day + 1}</div>
-      </header>
+      <Header variant="gameplay" onHome={onHome} campaignDate={formatDate(state.date)} day={state.day + 1} />
 
       <section className="commandbar">
         <div><span className="eyebrow">SALA DE COMANDO</span><h1>{state.campaignName}</h1></div>

@@ -1,0 +1,80 @@
+/* Gameplay em tela cheia: mapa ocupa o viewport inteiro, sem scroll da página. */
+html, body, #root { width:100%; min-height:100%; margin:0; }
+body:has(.gameplay-shell) { overflow:hidden; }
+.gameplay-shell { width:100vw; height:100dvh; min-height:0; max-width:none; margin:0; padding:0; overflow:hidden; position:relative; }
+.gameplay-shell .topbar { position:absolute; z-index:5; top:0; left:0; right:0; min-height:68px; padding:12px 22px; border:0; background:linear-gradient(180deg,rgba(7,12,18,.96),rgba(7,12,18,.72)); backdrop-filter:blur(12px); }
+.gameplay-shell .brand-mark { width:38px; height:38px; }
+.gameplay-shell .commandbar { position:absolute; z-index:5; top:68px; left:0; right:0; padding:12px 22px; gap:14px; background:rgba(10,16,23,.78); border-bottom:1px solid #ffffff12; backdrop-filter:blur(12px); }
+.gameplay-shell .commandbar h1 { font-size:20px; }
+.gameplay-shell .command-actions { justify-content:flex-end; }
+.gameplay-shell .button { padding:9px 11px; }
+.gameplay-shell .status-strip { position:absolute; z-index:5; left:22px; bottom:18px; max-width:min(650px,calc(100vw - 44px)); margin:0; background:rgba(12,19,27,.88); backdrop-filter:blur(10px); }
+.gameplay-shell .dashboard-grid { position:absolute; inset:0; display:block; }
+.gameplay-shell .map-panel { position:absolute; inset:0; padding:0; margin:0; border:0; border-radius:0; box-shadow:none; background:transparent; overflow:hidden; }
+.gameplay-shell .map-panel > .panel-header { position:absolute; z-index:2; left:22px; top:145px; margin:0; padding:10px 13px; border:1px solid #ffffff20; border-radius:9px; background:rgba(10,16,23,.78); backdrop-filter:blur(10px); }
+.gameplay-shell .map-panel > .panel-header h2 { font-size:14px; }
+.gameplay-shell .map-panel .panel-tag { font-size:10px; }
+.gameplay-shell .map-wrap { position:absolute; inset:0; width:100%; height:100%; min-height:0; border:0; border-radius:0; background:#101923; }
+.gameplay-shell .map-wrap .map-canvas { display:block; width:100% !important; height:100% !important; }
+.gameplay-shell .map-legend { position:absolute; z-index:3; left:22px; top:205px; display:flex; flex-wrap:wrap; gap:8px 14px; max-width:calc(100vw - 430px); margin:0; padding:10px 12px; border:1px solid #ffffff1c; border-radius:9px; background:rgba(10,16,23,.78); backdrop-filter:blur(10px); }
+.gameplay-shell .legend-item { font-size:10px; }
+.gameplay-shell .side-column { position:absolute; z-index:4; top:145px; right:18px; bottom:74px; width:min(360px,30vw); display:flex; flex-direction:column; gap:10px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#40505e transparent; }
+.gameplay-shell .side-column .panel { flex:0 0 auto; padding:14px; background:rgba(15,23,32,.91); backdrop-filter:blur(12px); box-shadow:0 12px 35px #0005; }
+.gameplay-shell .side-column .panel-header { margin-bottom:12px; }
+.gameplay-shell .side-column .panel-header h2 { font-size:14px; }
+.gameplay-shell .side-column .stats-grid { gap:7px; }
+.gameplay-shell .side-column .stat-card { padding:9px; }
+.gameplay-shell .side-column .stat-value { font-size:16px; margin:6px 0 3px; }
+.gameplay-shell .side-column .budget-row { padding:9px; }
+.gameplay-shell .footer { display:none; }
+@media(max-width:900px) {
+  .gameplay-shell .topbar { padding:10px 12px; }
+  .gameplay-shell .campaign-meta { font-size:10px; gap:7px; }
+  .gameplay-shell .commandbar { top:62px; padding:10px 12px; align-items:flex-start; flex-direction:column; }
+  .gameplay-shell .commandbar h1 { font-size:16px; margin-top:3px; }
+  .gameplay-shell .command-actions { justify-content:flex-start; gap:6px; }
+  .gameplay-shell .button { padding:8px 9px; font-size:10px; }
+  .gameplay-shell .map-panel > .panel-header { top:150px; left:12px; }
+  .gameplay-shell .map-legend { top:205px; left:12px; max-width:calc(100vw - 24px); }
+  .gameplay-shell .side-column { top:auto; right:10px; bottom:62px; width:min(320px,calc(100vw - 20px)); max-height:42dvh; }
+  .gameplay-shell .status-strip { left:10px; bottom:10px; max-width:calc(100vw - 20px); font-size:10px; }
+}
+@media(max-width:520px) {
+  .gameplay-shell .topbar { min-height:58px; }
+  .gameplay-shell .brand-subtitle { display:none; }
+  .gameplay-shell .campaign-meta { max-width:55vw; justify-content:flex-end; }
+  .gameplay-shell .commandbar { top:58px; }
+  .gameplay-shell .command-actions { flex-wrap:wrap; }
+  .gameplay-shell .button { flex:0 1 auto; }
+  .gameplay-shell .map-panel > .panel-header { top:166px; }
+  .gameplay-shell .map-legend { top:220px; }
+  .gameplay-shell .side-column { max-height:35dvh; }
+}
+
+/* Detalhes da hierarquia territorial e controles temporais. */
+.city-list { margin-top:14px; padding-top:12px; border-top:1px solid #263440; }
+.city-list > .eyebrow { margin-bottom:8px; }
+.city-row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; color:#aebbc7; font-size:11px; border-bottom:1px solid #26313b; }
+.city-row:last-child { border-bottom:0; }
+.city-row strong { color:#e2eaf1; font-weight:600; }
+.gameplay-shell .time-running { color:#f0b475; white-space:nowrap; }
+.gameplay-shell .time-toggle { border-color:#536474; }
+
+.geojson-import { display:inline-flex; align-items:center; cursor:pointer; }
+.geojson-import input { display:none; }
+
+
+
+/* Informações contextuais: ocultas até selecionar um país ou território no mapa. */
+.country-legend-button { appearance:none; border:1px solid transparent; padding:5px 7px; border-radius:6px; background:transparent; color:#bdc8d2; font:inherit; cursor:pointer; text-align:left; }
+.country-legend-button:hover,.country-legend-button.active { border-color:#e6a05d88; background:#d98b4518; }
+.info-panel-dismiss { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 11px; border:1px solid #ffffff20; border-radius:9px; background:rgba(10,16,23,.92); color:#f0b475; font-size:10px; letter-spacing:.08em; }
+.info-panel-dismiss .button { flex:none; }
+.gameplay-shell .side-column.info-panel-open { top:145px; }
+@media(max-width:900px) { .gameplay-shell .side-column.info-panel-open { top:auto; } }
+
+/* O mapa ocupa a área disponível enquanto nenhum painel de informação está aberto. */
+.dashboard-grid.map-focus-mode { grid-template-columns:minmax(0,1fr); }
+.dashboard-grid.map-focus-mode .map-panel { width:100%; }
+.dashboard-grid.has-info-panel { grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr); }
+.country-legend-button { display:flex; align-items:center; gap:8px; }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { GameState } from "../game/types";
 import WorldMap from "../map/WorldMap";
+import Header from "../components/header/Header";
 
 type Props = {
   state: GameState;
@@ -26,7 +27,7 @@ export default function CampaignSetupPage({ state, onCancel, onConfirm }: Props)
   return <main className="setup-screen">
     <div className="setup-map-background"><WorldMap state={state} onSelectTerritory={() => undefined} /></div>
     <div className="setup-vignette" />
-    <header className="setup-topbar"><button className="brand brand-button" onClick={onCancel}><span className="brand-mark">AH</span><span><span className="brand-title">AGE OF HISTORY</span><span className="brand-subtitle">Preparação de campanha</span></span></button><span className="setup-step">NOVA CAMPANHA <b>01 / 01</b></span></header>
+    <Header variant="setup" onHome={onCancel} />
     <section className="setup-layout">
       <div className="setup-intro"><span className="eyebrow">ANTES DE ESCREVER A HISTÓRIA</span><h1>Escolha seu<br/><em>lugar no mundo.</em></h1><p>Defina o cenário inicial, escolha quem você vai controlar e prepare sua campanha.</p><div className="setup-world-status"><span className="status-dot"/><span>Mapa padrão carregado</span><span className="setup-separator"/> {state.territories.length} territórios</div></div>
       <section className="setup-card">

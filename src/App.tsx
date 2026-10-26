@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useGameClock } from "./hooks/useGameClock";
 import { createInitialState } from "./data/scenario";
 import { advanceOneDay } from "./game/simulation";
 import type { GameState } from "./game/types";
@@ -30,12 +31,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  useEffect(() => {
-    if (page !== "gameplay" || timeSpeed === 0 || busy) return;
-    const intervalMs = 2000 / timeSpeed;
-    const timer = window.setInterval(() => setState(current => advanceOneDay(current)), intervalMs);
-    return () => window.clearInterval(timer);
-  }, [page, timeSpeed, busy]);
+  useGameClock(page === "gameplay", timeSpeed, busy, () => setState(current => advanceOneDay(current)));
 
   const navigate = useCallback((next: Page) => {
     const path = next === "gameplay" ? "/gameplay" : next === "setup" ? "/setup" : "/";

@@ -41,3 +41,12 @@ Este documento registra a arquitetura atual do protótipo e as fronteiras que de
 - O importador GeoJSON ainda ignora buracos internos de polígonos.
 - A seleção territorial usa as interações gráficas do PixiJS; testes automatizados e validação visual de geometrias complexas ainda são necessários.
 - A simulação atual é demonstrativa e não representa ainda um modelo econômico ou demográfico completo.
+
+
+## Organização de estilos e componentes
+
+- **Estilos globais**: `src/styles/reset.css`, `variables.css` e `global.css` separam reset, tokens e regras compartilhadas.
+- **Estilos por página**: `src/pages/home/`, `src/pages/gameplay/` e `src/pages/setup/` mantêm CSS específico junto à tela correspondente.
+- **Cabeçalho compartilhado**: `src/components/header/Header.tsx` e `Header.css` oferecem variantes para início, configuração e gameplay.
+- **Componentes reutilizáveis**: `src/components/ui/` contém controles visuais como `StatCard`.
+- **Hooks**: `src/hooks/` guarda efeitos React reutilizáveis, como o relógio da simulação.

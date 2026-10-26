@@ -1,0 +1,6 @@
+/* Reset mínimo do navegador. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { width: 100%; min-height: 100%; margin: 0; }
+body { min-width: 320px; }
+button, input, select, textarea { font: inherit; }
+img, svg, canvas { max-width: 100%; }

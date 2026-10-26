@@ -1,0 +1,5 @@
+/* Estilos do cabeçalho compartilhado. */
+.home-nav, .setup-topbar, .topbar { box-sizing: border-box; }
+.home-brand { text-decoration: none; }
+.brand-button { font: inherit; }
+.brand-button:focus-visible, .home-brand:focus-visible { outline: 2px solid #e6a05d; outline-offset: 4px; border-radius: 6px; }

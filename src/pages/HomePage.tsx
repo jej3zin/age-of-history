@@ -1,15 +1,11 @@
+import Header from "../components/header/Header";
+
 type Props = { onStart: () => void; onContinue: () => void };
 
 export default function HomePage({ onStart, onContinue }: Props) {
   return (
     <main className="home-shell">
-      <header className="home-nav">
-        <a className="brand home-brand" href="/" aria-label="Age of History início">
-          <span className="brand-mark">AH</span>
-          <span><strong className="brand-title">AGE OF HISTORY</strong><small className="brand-subtitle">Construa. Governe. Transforme.</small></span>
-        </a>
-        <span className="version-pill"><span className="status-dot" /> PROTÓTIPO v0.1</span>
-      </header>
+      <Header variant="home" />
 
       <section className="hero">
         <div className="hero-copy">
