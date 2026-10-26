@@ -6,15 +6,22 @@ import type { GameState } from "./game/types";
 import { loadGame, saveGame, parseCampaignFile, serializeCampaign, listSaveSlots, saveToSlot, loadSaveSlot, renameSaveSlot, deleteSaveSlot, exportRawSaveRecord, parseRawSaveRecoveryFile } from "./persistence/saveGame";
 import type { SaveSlot } from "./persistence/saveGame";
 import HomePage from "./pages/HomePage";
+import PortalPage from "./pages/PortalPage";
 import GameplayPage from "./pages/GameplayPage";
 import CampaignSetupPage from "./pages/CampaignSetupPage";
 import { importTerritoriesFromGeoJSON } from "./map/geoJson";
 
-type Page = "home" | "setup" | "gameplay";
+type Page = "start" | "home" | "about" | "scenario" | "play" | "setup" | "gameplay";
 type CampaignSetup = { countryId: string; customNation: boolean; customName: string; customColor: string };
 function currentPage(): Page {
   const path = window.location.pathname.replace(/\/+$/, "");
-  return path === "/gameplay" ? "gameplay" : path === "/setup" ? "setup" : "home";
+  if (path === "/gameplay") return "gameplay";
+  if (path === "/setup") return "setup";
+  if (path === "/home") return "home";
+  if (path === "/about") return "about";
+  if (path.startsWith("/scenario/")) return "scenario";
+  if (path.startsWith("/play/")) return "play";
+  return "start";
 }
 
 export default function App() {
@@ -35,7 +42,7 @@ export default function App() {
   useGameClock(page === "gameplay", timeSpeed, busy, tickGameClock);
 
   const navigate = useCallback((next: Page) => {
-    const path = next === "gameplay" ? "/gameplay" : next === "setup" ? "/setup" : "/";
+    const path = next === "gameplay" ? "/gameplay" : next === "setup" ? "/setup" : next === "home" ? "/home" : next === "about" ? "/about" : next === "scenario" ? "/scenario/ww1" : next === "play" ? "/play/ww1" : "/";
     if (window.location.pathname !== path) window.history.pushState({}, "", path);
     setPage(next);
     if (next !== "gameplay") setTimeSpeed(0);
@@ -221,6 +228,8 @@ export default function App() {
     } finally { setBusy(false); }
   }
 
+  if (page === "start") return <PortalPage view="start" onNavigate={path => { window.history.pushState({}, "", path); setPage(path === "/home" ? "home" : "start"); }} onStart={() => navigate("home")} onPlay={() => navigate("setup")} />;
+  if (page === "home" || page === "about" || page === "scenario" || page === "play") return <PortalPage view={page} onNavigate={path => { window.history.pushState({}, "", path); setPage(path === "/home" ? "home" : path === "/about" ? "about" : path.startsWith("/play/") ? "play" : "scenario"); }} onStart={() => navigate("home")} onPlay={() => navigate("setup")} onContinue={() => void load()} />;
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
   if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
   return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} onExportRawSave={id => void exportRawSave(id)} onImportRawRecovery={file => void importRawRecovery(file)} />;
