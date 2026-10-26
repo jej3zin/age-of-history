@@ -69,7 +69,7 @@ function polygonsCentroid(polygons: MapPosition[][]): MapPosition {
   ];
 }
 
-/** Importa Polygon e MultiPolygon; por enquanto, usa apenas os anéis externos (sem recortes internos/holes). */
+/** Importa Polygon e MultiPolygon preservando anéis externos e buracos internos. */
 export function importTerritoriesFromGeoJSON(input: unknown, validCountryIds?: Set<string>): Territory[] {
   if (!input || typeof input !== "object") throw new Error("O arquivo do mapa deve ser um objeto GeoJSON.");
   const collection = input as Partial<GeoJsonFeatureCollection>;
@@ -83,15 +83,18 @@ export function importTerritoriesFromGeoJSON(input: unknown, validCountryIds?: S
       throw new Error(`Feição ${index + 1}: geometria ausente ou formato inválido.`);
     }
     const geometry = feature.geometry;
-    let rawRings: unknown[];
+    let rawPolygons: unknown[][];
     if (geometry.type === "Polygon") {
-      if (!Array.isArray(geometry.coordinates)) throw new Error(`Feição ${index + 1}: coordenadas Polygon inválidas.`);
-      rawRings = [geometry.coordinates[0]];
-    } else if (geometry.type === "MultiPolygon") {
       if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0) {
-        throw new Error(`Feição ${index + 1}: MultiPolygon precisa conter ao menos um polígono.`);
+        throw new Error(`Feição ${index + 1}: coordenadas Polygon inválidas.`);
       }
-      rawRings = geometry.coordinates.map((polygon: unknown) => Array.isArray(polygon) ? polygon[0] : undefined);
+      rawPolygons = [geometry.coordinates as unknown[]];
+    } else if (geometry.type === "MultiPolygon") {
+      if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length === 0 ||
+        !geometry.coordinates.every((polygon: unknown) => Array.isArray(polygon) && polygon.length > 0)) {
+        throw new Error(`Feição ${index + 1}: MultiPolygon precisa conter ao menos um polígono com anel externo.`);
+      }
+      rawPolygons = geometry.coordinates as unknown[][][];
     } else {
       throw new Error(`Feição ${index + 1}: tipo de geometria "${geometry.type}" não suportado; use Polygon ou MultiPolygon.`);
     }
@@ -106,7 +109,8 @@ export function importTerritoriesFromGeoJSON(input: unknown, validCountryIds?: S
     if (validCountryIds && !validCountryIds.has(countryId)) throw new Error(`Território "${name}": countryId "${countryId}" não corresponde a nenhum país da campanha atual.`);
     seenIds.add(id);
 
-    const polygons = rawRings.map(ring => parseOuterRing(ring, name, index));
+    const polygons = rawPolygons.map(rings => parseOuterRing(rings[0], name, index));
+    const polygonHoles = rawPolygons.map(rings => rings.slice(1).map(ring => parseOuterRing(ring, name, index)));
     const center = polygonsCentroid(polygons);
     const population = Number(properties.population ?? 0);
     const production = Number(properties.production ?? 0);
@@ -114,7 +118,7 @@ export function importTerritoriesFromGeoJSON(input: unknown, validCountryIds?: S
       throw new Error(`Território "${name}": população e produção precisam ser números não negativos.`);
     }
     return {
-      id, name, countryId, points: polygons[0], polygons, center, population, production,
+      id, name, countryId, points: polygons[0], polygons, polygonHoles, center, population, production,
       terrain: typeof properties.terrain === "string" ? properties.terrain : "Não definido",
       ...(typeof properties.regionName === "string" ? { regionName: properties.regionName } : {})
     };
