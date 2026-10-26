@@ -104,10 +104,11 @@ export default function GameplayPage({
                   <div className="save-slot-info">
                     <strong>{slot.name}</strong>
                     <span>{slot.campaignName} · {formatDate(slot.date)} · Dia {slot.day + 1}</span>
-                    <small>{slot.isAuto ? "Salvamento automático" : "Salvamento manual"} · {slot.savedAt === "Data não registrada" ? slot.savedAt : new Date(slot.savedAt).toLocaleString()}</small>
+                    <small>{slot.isCorrupt ? "Salvamento com erro · registro original preservado" : (slot.isAuto ? "Salvamento automático" : "Salvamento manual")} · {slot.savedAt === "Data não registrada" ? slot.savedAt : new Date(slot.savedAt).toLocaleString()}</small>
+                    {slot.isCorrupt && <small className="save-slot-error">{slot.recoveryMessage ?? "Não foi possível validar este salvamento. Ele não foi alterado."}</small>}
                   </div>
                   <div className="save-slot-actions">
-                    <button className="button secondary" disabled={busy} onClick={() => onLoadSlot(slot.id)}>Carregar</button>
+                    <button className="button secondary" disabled={busy || slot.isCorrupt} title={slot.isCorrupt ? "Este salvamento não pode ser carregado até ser recuperável." : undefined} onClick={() => onLoadSlot(slot.id)}>{slot.isCorrupt ? "Indisponível" : "Carregar"}</button>
                     {!slot.isAuto && <button className="button secondary" disabled={busy} onClick={() => { const name = window.prompt("Novo nome do salvamento", slot.name); if (name !== null) onRenameSlot(slot.id, name); }}>Renomear</button>}
                     {!slot.isAuto && <button className="button secondary" disabled={busy} onClick={() => { if (window.confirm("Excluir o salvamento ‘" + slot.name + "’? Esta ação não pode ser desfeita.")) onDeleteSlot(slot.id); }}>Excluir</button>}
                   </div>
