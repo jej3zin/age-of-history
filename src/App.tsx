@@ -144,7 +144,35 @@ export default function App() {
     }
   }
 
-  const refreshSaveSlots = useCallback(() => {\n    void listSaveSlots().then(setSaveSlots).catch(error => setNotice("Não foi possível listar salvamentos: " + (error instanceof Error ? error.message : "erro desconhecido")));\n  }, []);\n\n  async function createSaveSlot(name: string) {\n    setBusy(true);\n    try { await saveToSlot(state, name); setNotice("Salvamento criado: " + name.trim()); refreshSaveSlots(); }\n    catch (error) { setNotice("Não foi possível criar salvamento: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n    finally { setBusy(false); }\n  }\n\n  async function loadSlot(id: string) {\n    setBusy(true);\n    try { const saved = await loadSaveSlot(id); setState(saved); setTimeSpeed(0); setNotice("Salvamento carregado em pausa."); navigate("gameplay"); }\n    catch (error) { setNotice("Não foi possível carregar: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n    finally { setBusy(false); }\n  }\n\n  async function renameSlot(id: string, name: string) {\n    try { await renameSaveSlot(id, name); setNotice("Salvamento renomeado."); refreshSaveSlots(); }\n    catch (error) { setNotice("Não foi possível renomear: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n  }\n\n  async function deleteSlot(id: string) {\n    try { await deleteSaveSlot(id); setNotice("Salvamento excluído."); refreshSaveSlots(); }\n    catch (error) { setNotice("Não foi possível excluir: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n  }\n\n  async function save() {
+  const refreshSaveSlots = useCallback(() => {
+    void listSaveSlots().then(setSaveSlots).catch(error => setNotice("Não foi possível listar salvamentos: " + (error instanceof Error ? error.message : "erro desconhecido")));
+  }, []);
+
+  async function createSaveSlot(name: string) {
+    setBusy(true);
+    try { await saveToSlot(state, name); setNotice("Salvamento criado: " + name.trim()); refreshSaveSlots(); }
+    catch (error) { setNotice("Não foi possível criar salvamento: " + (error instanceof Error ? error.message : "erro desconhecido")); }
+    finally { setBusy(false); }
+  }
+
+  async function loadSlot(id: string) {
+    setBusy(true);
+    try { const saved = await loadSaveSlot(id); setState(saved); setTimeSpeed(0); setNotice("Salvamento carregado em pausa."); navigate("gameplay"); }
+    catch (error) { setNotice("Não foi possível carregar: " + (error instanceof Error ? error.message : "erro desconhecido")); }
+    finally { setBusy(false); }
+  }
+
+  async function renameSlot(id: string, name: string) {
+    try { await renameSaveSlot(id, name); setNotice("Salvamento renomeado."); refreshSaveSlots(); }
+    catch (error) { setNotice("Não foi possível renomear: " + (error instanceof Error ? error.message : "erro desconhecido")); }
+  }
+
+  async function deleteSlot(id: string) {
+    try { await deleteSaveSlot(id); setNotice("Salvamento excluído."); refreshSaveSlots(); }
+    catch (error) { setNotice("Não foi possível excluir: " + (error instanceof Error ? error.message : "erro desconhecido")); }
+  }
+
+  async function save() {
     setBusy(true);
     try { await saveGame(state); setNotice("Campanha salva neste navegador."); }
     catch (error) { setNotice("Não foi possível salvar: " + (error instanceof Error ? error.message : "erro desconhecido")); }
