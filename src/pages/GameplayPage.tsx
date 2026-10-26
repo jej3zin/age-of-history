@@ -110,6 +110,7 @@ export default function GameplayPage({
                   <div className="save-slot-info">
                     <strong>{slot.name}</strong>
                     <span>{slot.campaignName} · {formatDate(slot.date)} · Dia {slot.day + 1}</span>
+                    <small>Cenário: {slot.scenarioId} · Modo: {slot.mode} · Versão: {slot.gameVersion}</small>
                     <small>{slot.isCorrupt ? "Salvamento com erro · registro original preservado" : (slot.isAuto ? "Salvamento automático" : "Salvamento manual")} · {slot.savedAt === "Data não registrada" ? slot.savedAt : new Date(slot.savedAt).toLocaleString()}</small>
                     {slot.isCorrupt && <><small className="save-slot-error">{slot.recoveryMessage ?? "Não foi possível validar este salvamento. Ele não foi alterado."}</small><button type="button" className="button secondary" disabled={busy} onClick={() => onExportRawSave(slot.id)}>Exportar dados brutos para recuperação</button></>}
                   </div>

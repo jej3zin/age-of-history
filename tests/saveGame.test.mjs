@@ -60,11 +60,14 @@ test("rejeita buracos geométricos malformados", () => {
 });
 
 
-test("migra registros locais antigos preservando o estado válido", () => {
+test("migra registros antigos com metadados padrão sem perder a campanha", () => {
   const legacy = campaign({ lastSavedAt: "2026-01-01T00:00:00.000Z" });
   const migrated = migrateStoredRecord(legacy);
   assert.equal(migrated.campaignName, legacy.campaignName);
   assert.equal(migrated.schemaVersion, 1);
+  assert.equal(migrated.mode, "history");
+  assert.equal(migrated.scenarioId, "legacy-unknown");
+  assert.equal(migrated.gameVersion, "unknown");
 });
 
 test("rejeita versão de esquema não suportada sem modificar o registro recebido", () => {

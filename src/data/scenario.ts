@@ -16,6 +16,7 @@ const territories: Territory[] = [
 export function createInitialState(): GameState {
   return {
     schemaVersion: 1, campaignName: "Campanha de demonstração", date: "1836-01-01", day: 0,
+    scenarioId: "prototype-world", mode: "history", gameVersion: "0.1.0",
     selectedCountryId: "aurora", selectedTerritoryId: "aurora-norte",
     countries: structuredClone(countries), territories: structuredClone(territories),
     events: [{ id: "start", day: 0, title: "Uma nova campanha", description: "A República de Aurora inicia o ano com instituições estáveis e um orçamento limitado." }]

@@ -18,6 +18,7 @@ export interface GameEvent { id: string; day: number; title: string; description
 export interface CitizenProfile { name: string; profession: "Estudante" | "Trabalha"; family: string; money: number; dailyIncome: number; dailyExpense: number; }
 export interface GameState {
   schemaVersion: 1; campaignName: string; date: string; day: number;
+  scenarioId?: string; mode?: "history" | "alternate-history" | "citizen-history" | "tensura" | "community"; gameVersion?: string;
   selectedCountryId: string; selectedTerritoryId: string;
   countries: Country[]; territories: Territory[]; events: GameEvent[];
   citizenProfile?: CitizenProfile;
