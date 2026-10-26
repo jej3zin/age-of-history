@@ -28,8 +28,6 @@ export default function GameplayPage({
   const selected = state.territories.find((territory) => territory.id === state.selectedTerritoryId) ?? state.territories[0];
   const selectedCountry = state.countries.find((country) => country.id === selected?.countryId) ?? state.countries[0];
   const inspectedCountry = state.countries.find((country) => country.id === inspectedCountryId) ?? selectedCountry;
-  const player = state.countries.find((country) => country.id === inspectedCountry.id) ?? state.countries[0];
-  const balance = player.dailyIncome - player.dailyExpense;
   const countryColor = (color: number) => "#" + color.toString(16).padStart(6, "0");
 
   return (
