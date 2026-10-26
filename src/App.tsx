@@ -5,6 +5,7 @@ import type { GameState } from "./game/types";
 import { loadGame, saveGame } from "./persistence/saveGame";
 import HomePage from "./pages/HomePage";
 import GameplayPage from "./pages/GameplayPage";
+import { importTerritoriesFromGeoJSON } from "./map/geoJson";
 
 type Page = "home" | "gameplay";
 function currentPage(): Page {
@@ -39,6 +40,19 @@ export default function App() {
     if (next === "home") setTimeSpeed(0);
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
+
+  const importGeoJSON = async (file: File) => {
+    setBusy(true);
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+      const territories = importTerritoriesFromGeoJSON(parsed, new Set(state.countries.map(country => country.id)));
+      setState(current => ({ ...current, territories, selectedTerritoryId: territories[0].id, selectedCountryId: territories[0].countryId }));
+      setTimeSpeed(0);
+      setNotice(`Mapa importado: ${territories.length} territórios carregados de ${file.name}. A simulação foi pausada.`);
+    } catch (error) {
+      setNotice("Falha ao importar GeoJSON: " + (error instanceof Error ? error.message : "arquivo inválido"));
+    } finally { setBusy(false); }
+  };
 
   const selectTerritory = (id: string) => {
     const territory = state.territories.find(item => item.id === id);
@@ -82,5 +96,5 @@ export default function App() {
   }
 
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
-  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} />;
+  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} />;
 }
