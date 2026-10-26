@@ -116,6 +116,8 @@ test("preserva metadados de cenário, modo, versão, dificuldade e perfil de IA 
   const source = campaign({
     scenarioId: "modern-day", mode: "history", gameVersion: "0.1.0",
     difficulty: "hard", aiProfile: "advanced",
+    eventQueue: [{ id: "decision-next", dueDay: 5, priority: 10, title: "Decisão", description: "Escolher.", requiresDecision: true }],
+    pendingDecision: { id: "decision-now", day: 4, title: "Decisão pendente", description: "Resolver antes de avançar." },
   });
   const imported = parseCampaignFile(serializeCampaign(source));
   assert.equal(imported.scenarioId, "modern-day");
@@ -123,4 +125,14 @@ test("preserva metadados de cenário, modo, versão, dificuldade e perfil de IA 
   assert.equal(imported.gameVersion, "0.1.0");
   assert.equal(imported.difficulty, "hard");
   assert.equal(imported.aiProfile, "advanced");
+  assert.deepEqual(imported.eventQueue, source.eventQueue);
+  assert.deepEqual(imported.pendingDecision, source.pendingDecision);
+});
+
+
+test("rejects malformed event queues and pending decisions during import", () => {
+  const badQueue = campaign({ eventQueue: [{ id: "x", dueDay: -1, priority: 0, title: "Inválido", description: "", requiresDecision: false }] });
+  assert.throws(() => parseCampaignFile(JSON.stringify({ format: "age-of-history-campaign", formatVersion: 1, state: badQueue })), /Fila de eventos inválida/);
+  const badDecision = campaign({ pendingDecision: { id: "x", day: -1, title: "Inválida", description: "" } });
+  assert.throws(() => parseCampaignFile(JSON.stringify({ format: "age-of-history-campaign", formatVersion: 1, state: badDecision })), /Decisão pendente inválida/);
 });
