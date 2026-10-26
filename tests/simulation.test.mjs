@@ -111,3 +111,24 @@ test("rejects invalid or duplicate scheduled events", () => {
   assert.throws(() => queueGameEvent(queued, event), /identificador/);
   assert.throws(() => queueGameEvent(initial, { ...event, dueDay: -1 }), /dia do evento/);
 });
+
+
+test("reports explain aggregate fiscal and demographic indicators", () => {
+  const monthly = advanceOneDay(state({ day: 29 }));
+  assert.match(monthly.events[0].description, /Tesouro total:/);
+  assert.match(monthly.events[0].description, /saldo diário agregado:/);
+  assert.match(monthly.events[0].description, /população:/);
+  assert.match(monthly.events[0].description, /produção:/);
+  const annual = advanceOneDay(state({ day: 364 }));
+  assert.match(annual.events[0].description, /estabilidade média:/);
+  assert.match(annual.events[0].description, /população total:/);
+});
+
+test("weekly stability falls with a deficit and remains within its limits", () => {
+  const deficit = state({ day: 6, countries: [{ id: "c1", name: "País", color: 0xffffff, treasury: 0, dailyIncome: 1, dailyExpense: 5, population: 1000, production: 10, stability: 50, isPlayer: true }] });
+  assert.equal(advanceOneDay(deficit).countries[0].stability, 49);
+  const low = state({ day: 6, countries: [{ ...deficit.countries[0], stability: 0 }] });
+  const high = state({ day: 6, countries: [{ ...deficit.countries[0], dailyIncome: 10, dailyExpense: 0, stability: 100 }] });
+  assert.equal(advanceOneDay(low).countries[0].stability, 0);
+  assert.equal(advanceOneDay(high).countries[0].stability, 100);
+});

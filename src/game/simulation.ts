@@ -48,10 +48,19 @@ export function advanceOneDay(current: GameState): GameState {
   next.eventQueue = (next.eventQueue ?? []).filter(event => !processedIds.has(event.id));
 
   if (next.day % 30 === 0) {
-    next.events.unshift({ id: "monthly-" + next.day, day: next.day, title: "Relatório mensal", description: "Fechamento de " + next.date + ": tesouros, população e produção foram atualizados." });
+    const number = (value: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(value));
+    const treasury = next.countries.reduce((sum, country) => sum + country.treasury, 0);
+    const dailyBalance = next.countries.reduce((sum, country) => sum + country.dailyIncome - country.dailyExpense, 0);
+    const population = next.countries.reduce((sum, country) => sum + country.population, 0);
+    const production = next.countries.reduce((sum, country) => sum + country.production, 0);
+    next.events.unshift({ id: "monthly-" + next.day, day: next.day, title: "Relatório mensal", description: `Fechamento de ${next.date}. Tesouro total: ${number(treasury)}; saldo diário agregado: ${number(dailyBalance)}; população: ${number(population)}; produção: ${number(production)}.` });
   }
   if (next.day % 365 === 0) {
-    next.events.unshift({ id: "annual-" + next.day, day: next.day, title: "Balanço anual", description: "Um ano de campanha foi concluído. Revise a estabilidade e a situação econômica dos países." });
+    const number = (value: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Math.round(value));
+    const treasury = next.countries.reduce((sum, country) => sum + country.treasury, 0);
+    const population = next.countries.reduce((sum, country) => sum + country.population, 0);
+    const averageStability = next.countries.length ? next.countries.reduce((sum, country) => sum + country.stability, 0) / next.countries.length : 0;
+    next.events.unshift({ id: "annual-" + next.day, day: next.day, title: "Balanço anual", description: `Balanço de ${next.date}. Tesouro total: ${number(treasury)}; população total: ${number(population)}; estabilidade média: ${number(averageStability)} de 100.` });
   }
   next.events = next.events.slice(0, 12);
   return next;
