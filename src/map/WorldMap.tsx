@@ -1,17 +1,21 @@
 import { useEffect, useRef } from "react";
 import { Application, Container, Graphics, Text } from "pixi.js";
-import type { GameState, Territory } from "../game/types";
+import type { GameState, MapPosition, Territory } from "../game/types";
 
 type Props = { state: GameState; onSelectTerritory: (id: string) => void };
 
-function drawPolygon(g: Graphics, t: Territory, color: number, selected: boolean) {
-  const first = t.points[0];
+function drawPolygon(g: Graphics, points: MapPosition[], color: number, selected: boolean) {
+  const first = points[0];
   if (!first) return;
   g.moveTo(first[0], first[1]);
-  t.points.slice(1).forEach((p) => g.lineTo(p[0], p[1]));
+  points.slice(1).forEach((p) => g.lineTo(p[0], p[1]));
   g.closePath();
   g.fill({ color, alpha: selected ? 1 : 0.84 });
   g.stroke({ color: selected ? 0xffd18a : 0x18212c, width: selected ? 4 : 3 });
+}
+
+function territoryPolygons(territory: Territory): MapPosition[][] {
+  return territory.polygons?.length ? territory.polygons : [territory.points];
 }
 
 export default function WorldMap({ state, onSelectTerritory }: Props) {
@@ -55,7 +59,6 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
         initialized = true;
 
         // React StrictMode may unmount this effect while Pixi is still initializing.
-        // Only destroy the Application after init() has completed.
         if (disposed || !host.current) {
           destroyApp();
           return;
@@ -70,7 +73,6 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
         pixi.stage.addChild(world);
 
         function render() {
-          // Release old graphics/text when state changes to avoid accumulating GPU resources.
           for (const child of world.removeChildren()) child.destroy();
 
           const bg = new Graphics();
@@ -87,12 +89,14 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
           for (const territory of s.territories) {
             const country = s.countries.find((c) => c.id === territory.countryId);
             const selected = territory.id === s.selectedTerritoryId;
-            const shape = new Graphics();
-            drawPolygon(shape, territory, country?.color ?? 0x778899, selected);
-            shape.eventMode = "static";
-            shape.cursor = "pointer";
-            shape.on("pointertap", () => callback.current(territory.id));
-            world.addChild(shape);
+            for (const points of territoryPolygons(territory)) {
+              const shape = new Graphics();
+              drawPolygon(shape, points, country?.color ?? 0x778899, selected);
+              shape.eventMode = "static";
+              shape.cursor = "pointer";
+              shape.on("pointertap", () => callback.current(territory.id));
+              world.addChild(shape);
+            }
 
             const label = new Text({
               text: territory.name,
@@ -126,7 +130,6 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
         observer = new ResizeObserver(render);
         observer.observe(element);
       } catch (error) {
-        // Avoid leaving a half-initialized Pixi Application behind.
         if (initialized) destroyApp();
         if (!disposed) console.error("Não foi possível inicializar o mapa:", error);
       }
@@ -138,7 +141,6 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
       disposed = true;
       observer?.disconnect();
       redraw.current = null;
-      // If init() is still pending, init() itself performs cleanup when it resolves.
       destroyApp();
       host.current?.replaceChildren();
     };
