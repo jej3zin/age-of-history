@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { createInitialState } from "./data/scenario";
 import { advanceOneDay } from "./game/simulation";
 import type { GameState } from "./game/types";
-import { loadGame, saveGame, parseCampaignFile, serializeCampaign } from "./persistence/saveGame";
+import { loadGame, saveGame, parseCampaignFile, serializeCampaign, listSaveSlots, saveToSlot, loadSaveSlot, renameSaveSlot, deleteSaveSlot } from "./persistence/saveGame";
+import type { SaveSlot } from "./persistence/saveGame";
 import HomePage from "./pages/HomePage";
 import GameplayPage from "./pages/GameplayPage";
 import CampaignSetupPage from "./pages/CampaignSetupPage";
@@ -21,6 +22,7 @@ export default function App() {
   const [notice, setNotice] = useState("Selecione territórios no mapa e avance o tempo para iniciar a simulação.");
   const [busy, setBusy] = useState(false);
   const [timeSpeed, setTimeSpeed] = useState(0);
+  const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
 
   useEffect(() => {
     const onPopState = () => setPage(currentPage());
@@ -142,7 +144,7 @@ export default function App() {
     }
   }
 
-  async function save() {
+  const refreshSaveSlots = useCallback(() => {\n    void listSaveSlots().then(setSaveSlots).catch(error => setNotice("Não foi possível listar salvamentos: " + (error instanceof Error ? error.message : "erro desconhecido")));\n  }, []);\n\n  async function createSaveSlot(name: string) {\n    setBusy(true);\n    try { await saveToSlot(state, name); setNotice("Salvamento criado: " + name.trim()); refreshSaveSlots(); }\n    catch (error) { setNotice("Não foi possível criar salvamento: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n    finally { setBusy(false); }\n  }\n\n  async function loadSlot(id: string) {\n    setBusy(true);\n    try { const saved = await loadSaveSlot(id); setState(saved); setTimeSpeed(0); setNotice("Salvamento carregado em pausa."); navigate("gameplay"); }\n    catch (error) { setNotice("Não foi possível carregar: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n    finally { setBusy(false); }\n  }\n\n  async function renameSlot(id: string, name: string) {\n    try { await renameSaveSlot(id, name); setNotice("Salvamento renomeado."); refreshSaveSlots(); }\n    catch (error) { setNotice("Não foi possível renomear: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n  }\n\n  async function deleteSlot(id: string) {\n    try { await deleteSaveSlot(id); setNotice("Salvamento excluído."); refreshSaveSlots(); }\n    catch (error) { setNotice("Não foi possível excluir: " + (error instanceof Error ? error.message : "erro desconhecido")); }\n  }\n\n  async function save() {
     setBusy(true);
     try { await saveGame(state); setNotice("Campanha salva neste navegador."); }
     catch (error) { setNotice("Não foi possível salvar: " + (error instanceof Error ? error.message : "erro desconhecido")); }
@@ -165,5 +167,5 @@ export default function App() {
 
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
   if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
-  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} />;
+  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} />;
 }
