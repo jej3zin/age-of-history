@@ -245,7 +245,7 @@ export async function deleteSaveSlot(id: string): Promise<void> {
 export function serializeCampaign(state: GameState): string {
   const portableState = structuredClone(state);
   delete portableState.lastSavedAt;
-  delete portableState.saveMeta;
+  delete (portableState as GameState & { saveMeta?: unknown }).saveMeta;
   return JSON.stringify({ format: EXPORT_FORMAT, formatVersion: EXPORT_VERSION, exportedAt: new Date().toISOString(), state: portableState }, null, 2);
 }
 
