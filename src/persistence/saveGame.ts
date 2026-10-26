@@ -127,7 +127,7 @@ function readRequest<T>(db: IDBDatabase, mode: IDBTransactionMode, action: (stor
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE, mode);
     const request = action(transaction.objectStore(STORE));
-    let result: T;
+    let result: T | undefined;
     let requestFailed = false;
     request.onsuccess = () => { result = request.result; };
     request.onerror = () => {
@@ -135,7 +135,7 @@ function readRequest<T>(db: IDBDatabase, mode: IDBTransactionMode, action: (stor
       reject(request.error ?? new Error("Falha ao acessar os salvamentos."));
     };
     transaction.oncomplete = () => {
-      if (!requestFailed) resolve(result);
+      if (!requestFailed) resolve(result as T);
     };
     transaction.onerror = () => reject(transaction.error ?? new Error("Falha na transação de salvamento."));
     transaction.onabort = () => reject(transaction.error ?? new Error("A operação de salvamento foi cancelada."));
@@ -199,10 +199,11 @@ export async function listSaveSlots(): Promise<SaveSlot[]> {
       const recordsRequest = store.getAll();
       let resultKeys: IDBValidKey[] | undefined;
       let resultRecords: unknown[] | undefined;
+      let transactionComplete = false;
       let failed = false;
       const finish = () => {
-        if (!failed && resultKeys && resultRecords) {
-          // Ambos os resultados são capturados na mesma transação de leitura.
+        if (!failed && transactionComplete && resultKeys !== undefined && resultRecords !== undefined) {
+          // Ambos os resultados pertencem a uma transação concluída com sucesso.
           resolve([resultKeys, resultRecords]);
         }
       };
@@ -210,7 +211,7 @@ export async function listSaveSlots(): Promise<SaveSlot[]> {
       recordsRequest.onsuccess = () => { resultRecords = recordsRequest.result; finish(); };
       keysRequest.onerror = () => { failed = true; reject(keysRequest.error ?? new Error("Falha ao listar chaves de salvamento.")); };
       recordsRequest.onerror = () => { failed = true; reject(recordsRequest.error ?? new Error("Falha ao listar salvamentos.")); };
-      transaction.oncomplete = finish;
+      transaction.oncomplete = () => { transactionComplete = true; finish(); };
       transaction.onerror = () => reject(transaction.error ?? new Error("Falha na transação ao listar salvamentos."));
       transaction.onabort = () => reject(transaction.error ?? new Error("A listagem de salvamentos foi cancelada."));
     });
