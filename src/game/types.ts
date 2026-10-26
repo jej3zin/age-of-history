@@ -8,6 +8,8 @@ export interface Territory {
   id: string; name: string; countryId: string; points: MapPosition[];
   /** Anéis externos separados para territórios compostos por ilhas ou partes desconectadas. */
   polygons?: MapPosition[][];
+  /** Anéis internos (buracos), agrupados na mesma ordem de `polygons`. */
+  polygonHoles?: MapPosition[][][];
   center: MapPosition; population: number; production: number; terrain: string;
   regionName?: string;
   cities?: { id: string; name: string; population: number }[];
