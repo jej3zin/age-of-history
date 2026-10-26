@@ -16,12 +16,14 @@ type Props = {
   onSave: () => void;
   onNextDay: () => void;
   onSelectTerritory: (id: string) => void;
-  onImportGeoJSON: (file: File) => void;\n  onExportCampaign: () => void;\n  onImportCampaign: (file: File) => void;
+  onImportGeoJSON: (file: File) => void;
+  onExportCampaign: () => void;
+  onImportCampaign: (file: File) => void;
 };
 
 export default function GameplayPage({
   state, notice, busy, timeSpeed, onSetTimeSpeed, onHome, onNewCampaign,
-  onLoad, onSave, onNextDay, onSelectTerritory, onImportGeoJSON,
+  onLoad, onSave, onNextDay, onSelectTerritory, onImportGeoJSON, onExportCampaign, onImportCampaign,
 }: Props) {
   const [infoPanel, setInfoPanel] = useState<"territory" | "country" | null>(null);
   const [inspectedCountryId, setInspectedCountryId] = useState<string | null>(null);
@@ -46,7 +48,16 @@ export default function GameplayPage({
           <button className="button secondary" disabled={busy} onClick={onHome}>Menu inicial</button>
           <button className="button secondary" disabled={busy} onClick={onNewCampaign}>Nova campanha</button>
           <button className="button secondary" disabled={busy} onClick={onLoad}>Carregar</button>
-          <button className="button secondary" disabled={busy} onClick={onSave}>Salvar campanha</button>\n          <button className="button secondary" disabled={busy} onClick={onExportCampaign}>Exportar JSON</button>\n          <label className="button secondary geojson-import" aria-label="Importar campanha JSON">\n            Importar campanha\n            <input type="file" accept=".json,application/json" disabled={busy} onChange={(event) => {\n              const file = event.currentTarget.files?.[0];\n              if (file) onImportCampaign(file);\n              event.currentTarget.value = "";\n            }} />\n          </label>
+          <button className="button secondary" disabled={busy} onClick={onSave}>Salvar campanha</button>
+          <button className="button secondary" disabled={busy} onClick={onExportCampaign}>Exportar JSON</button>
+          <label className="button secondary geojson-import" aria-label="Importar campanha JSON">
+            Importar campanha
+            <input type="file" accept=".json,application/json" disabled={busy} onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              if (file) onImportCampaign(file);
+              event.currentTarget.value = "";
+            }} />
+          </label>
           <label className="button secondary geojson-import" aria-label="Importar mapa GeoJSON">
             Importar mapa
             <input type="file" accept=".json,.geojson,application/geo+json,application/json" disabled={busy} onChange={(event) => {
