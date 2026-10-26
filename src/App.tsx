@@ -31,7 +31,8 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  useGameClock(page === "gameplay", timeSpeed, busy, () => setState(current => advanceOneDay(current)));
+  const tickGameClock = useCallback(() => setState(current => advanceOneDay(current)), []);
+  useGameClock(page === "gameplay", timeSpeed, busy, tickGameClock);
 
   const navigate = useCallback((next: Page) => {
     const path = next === "gameplay" ? "/gameplay" : next === "setup" ? "/setup" : "/";
