@@ -183,3 +183,19 @@ test("campaign export validates state and excludes local persistence metadata", 
   assert.equal("saveMeta" in source, true);
   assert.throws(() => serializeCampaign(campaign({ day: -1 })), /salvamento|campanha válida|campanha inválida/i);
 });
+
+
+test("rejects empty and duplicate IDs inside event history", () => {
+  const emptyId = campaign({
+    events: [{ id: "  ", day: 0, title: "Inválido", description: "" }],
+  });
+  assert.throws(() => migrateStoredRecord(emptyId), /Campanha inválida/);
+
+  const duplicateIds = campaign({
+    events: [
+      { id: "same", day: 0, title: "Primeiro", description: "" },
+      { id: "same", day: 1, title: "Segundo", description: "" },
+    ],
+  });
+  assert.throws(() => migrateStoredRecord(duplicateIds), /Campanha inválida/);
+});
