@@ -315,6 +315,28 @@ export async function exportRawSaveRecord(id: string): Promise<string> {
   }
 }
 
+/**
+ * Valida um envelope exportado para recuperação e extrai uma campanha jogável.
+ * O registro original nunca é escrito de volta no IndexedDB por esta função.
+ */
+export function parseRawSaveRecoveryFile(text: string): GameState {
+  let document: unknown;
+  try { document = JSON.parse(text); }
+  catch { throw new Error("O arquivo de recuperação não é um JSON válido."); }
+  if (!document || typeof document !== "object") {
+    throw new Error("Formato de recuperação inválido.");
+  }
+  const envelope = document as { format?: unknown; record?: unknown };
+  if (envelope.format !== "age-of-history-raw-save-recovery") {
+    throw new Error("Este arquivo não é uma exportação bruta de salvamento do Age of History.");
+  }
+  if (!envelope.record || typeof envelope.record !== "object") {
+    throw new Error("O arquivo de recuperação não contém um registro de salvamento.");
+  }
+  // migrateStoredRecord valida os dados e remove metadados locais por meio do estado normalizado.
+  return migrateStoredRecord(envelope.record);
+}
+
 export async function deleteSaveSlot(id: string): Promise<void> {
   if (id === AUTO_KEY) throw new Error("O salvamento automático não pode ser excluído.");
   const db = await openDb();
