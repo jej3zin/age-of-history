@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createInitialState } from "./data/scenario";
 import { advanceOneDay } from "./game/simulation";
 import type { GameState } from "./game/types";
-import { loadGame, saveGame, parseCampaignFile, serializeCampaign, listSaveSlots, saveToSlot, loadSaveSlot, renameSaveSlot, deleteSaveSlot, exportRawSaveRecord } from "./persistence/saveGame";
+import { loadGame, saveGame, parseCampaignFile, serializeCampaign, listSaveSlots, saveToSlot, loadSaveSlot, renameSaveSlot, deleteSaveSlot, exportRawSaveRecord, parseRawSaveRecoveryFile } from "./persistence/saveGame";
 import type { SaveSlot } from "./persistence/saveGame";
 import HomePage from "./pages/HomePage";
 import GameplayPage from "./pages/GameplayPage";
@@ -185,6 +185,19 @@ export default function App() {
     }
   }
 
+  async function importRawRecovery(file: File) {
+    setBusy(true);
+    try {
+      const recovered = parseRawSaveRecoveryFile(await file.text());
+      setState(recovered);
+      setTimeSpeed(0);
+      setNotice(`Campanha recuperada e validada a partir de ${file.name}. O arquivo e o salvamento original não foram alterados. Salve em um novo slot após conferir os dados.`);
+      navigate("gameplay");
+    } catch (error) {
+      setNotice("Falha ao recuperar salvamento: " + (error instanceof Error ? error.message : "arquivo inválido"));
+    } finally { setBusy(false); }
+  }
+
   async function deleteSlot(id: string) {
     try { await deleteSaveSlot(id); setNotice("Salvamento excluído."); refreshSaveSlots(); }
     catch (error) { setNotice("Não foi possível excluir: " + (error instanceof Error ? error.message : "erro desconhecido")); }
@@ -213,5 +226,5 @@ export default function App() {
 
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
   if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
-  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} onExportRawSave={id => void exportRawSave(id)} />;
+  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} onExportRawSave={id => void exportRawSave(id)} onImportRawRecovery={file => void importRawRecovery(file)} />;
 }
