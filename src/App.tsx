@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { createInitialState } from "./data/scenario";
 import { advanceOneDay, formatDate, formatMoney, formatNumber } from "./game/simulation";
 import type { GameState } from "./game/types";
