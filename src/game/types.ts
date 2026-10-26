@@ -3,9 +3,12 @@ export interface Country {
   dailyIncome: number; dailyExpense: number; population: number;
   production: number; stability: number; isPlayer: boolean;
 }
+export type MapPosition = [number, number];
 export interface Territory {
-  id: string; name: string; countryId: string; points: [number, number][];
-  center: [number, number]; population: number; production: number; terrain: string;
+  id: string; name: string; countryId: string; points: MapPosition[];
+  /** Anéis externos separados para territórios compostos por ilhas ou partes desconectadas. */
+  polygons?: MapPosition[][];
+  center: MapPosition; population: number; production: number; terrain: string;
   regionName?: string;
   cities?: { id: string; name: string; population: number }[];
 }
