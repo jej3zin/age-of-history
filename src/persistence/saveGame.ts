@@ -111,12 +111,21 @@ export function migrateStoredRecord(value: unknown): GameState {
     event && typeof event.id === "string" && event.id.trim() && Number.isInteger(event.dueDay) && event.dueDay >= 0 &&
     Number.isFinite(event.priority) && typeof event.title === "string" && event.title.trim() &&
     typeof event.description === "string" && typeof event.requiresDecision === "boolean"
-  ))) throw new Error("Fila de eventos inválida no salvamento.");
-  if (state.pendingDecision !== undefined && (!state.pendingDecision || typeof state.pendingDecision.id !== "string" ||
-    !Number.isInteger(state.pendingDecision.day) || state.pendingDecision.day < 0 || typeof state.pendingDecision.title !== "string" || typeof state.pendingDecision.description !== "string")) {
+  ) || new Set(state.eventQueue.map(event => event.id)).size !== state.eventQueue.length)) throw new Error("Fila de eventos inválida no salvamento.");
+  if (state.pendingDecision !== undefined && (!state.pendingDecision || typeof state.pendingDecision.id !== "string" || !state.pendingDecision.id.trim() ||
+    !Number.isInteger(state.pendingDecision.day) || state.pendingDecision.day < 0 || typeof state.pendingDecision.title !== "string" || !state.pendingDecision.title.trim() || typeof state.pendingDecision.description !== "string")) {
     throw new Error("Decisão pendente inválida no salvamento.");
   }
-  const normalized = structuredClone(state) as GameState;
+  if (state.pendingDecision && ((state.eventQueue ?? []).some(event => event.id === state.pendingDecision!.id) || state.events.some(event => event.id === state.pendingDecision!.id))) {
+    throw new Error("A decisão pendente precisa ter um identificador único na campanha.");
+  }
+  if ((state.eventQueue ?? []).some(event => state.events.some(existing => existing.id === event.id))) {
+    throw new Error("A fila contém um evento que já está no histórico da campanha.");
+  }
+  const normalized = structuredClone(state) as GameState & { storageVersion?: unknown; saveMeta?: unknown };
+  // Metadados de armazenamento pertencem ao registro IndexedDB, nunca ao estado da campanha.
+  delete normalized.storageVersion;
+  delete normalized.saveMeta;
   normalized.scenarioId = typeof normalized.scenarioId === "string" && normalized.scenarioId.trim() ? normalized.scenarioId : "legacy-unknown";
   normalized.mode = normalized.mode ?? "history";
   normalized.gameVersion = typeof normalized.gameVersion === "string" && normalized.gameVersion.trim() ? normalized.gameVersion : "unknown";

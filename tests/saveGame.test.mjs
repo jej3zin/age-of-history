@@ -136,3 +136,32 @@ test("rejects malformed event queues and pending decisions during import", () =>
   const badDecision = campaign({ pendingDecision: { id: "x", day: -1, title: "Inválida", description: "" } });
   assert.throws(() => parseCampaignFile(JSON.stringify({ format: "age-of-history-campaign", formatVersion: 1, state: badDecision })), /Decisão pendente inválida/);
 });
+
+
+test("remove metadados locais ao normalizar registros do IndexedDB", () => {
+  const state = campaign({ scenarioId: "modern-day", mode: "history" });
+  const stored = {
+    ...state,
+    storageVersion: 1,
+    saveMeta: { id: "save-test", name: "Backup", savedAt: "2026-10-26T10:00:00.000Z" },
+  };
+  const loaded = migrateStoredRecord(stored);
+  assert.equal(loaded.scenarioId, "modern-day");
+  assert.equal("storageVersion" in loaded, false);
+  assert.equal("saveMeta" in loaded, false);
+  assert.equal("storageVersion" in stored, true, "normalization must not mutate the stored source");
+  assert.equal("saveMeta" in stored, true);
+});
+
+test("rejects duplicate IDs across event history, queue and pending decision", () => {
+  const duplicateQueue = campaign({
+    events: [{ id: "same", day: 0, title: "Existente", description: "" }],
+    eventQueue: [{ id: "same", dueDay: 1, priority: 0, title: "Duplicado", description: "", requiresDecision: false }],
+  });
+  assert.throws(() => migrateStoredRecord(duplicateQueue), /já está no histórico/);
+  const duplicateDecision = campaign({
+    eventQueue: [{ id: "same", dueDay: 1, priority: 0, title: "Na fila", description: "", requiresDecision: false }],
+    pendingDecision: { id: "same", day: 0, title: "Pendente", description: "" },
+  });
+  assert.throws(() => migrateStoredRecord(duplicateDecision), /identificador único/);
+});
