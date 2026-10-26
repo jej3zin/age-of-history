@@ -144,3 +144,9 @@ body:has(.gameplay-shell) { overflow:hidden; }
 .info-panel-dismiss .button { flex:none; }
 .gameplay-shell .side-column.info-panel-open { top:145px; }
 @media(max-width:900px) { .gameplay-shell .side-column.info-panel-open { top:auto; } }
+
+/* O mapa ocupa a área disponível enquanto nenhum painel de informação está aberto. */
+.dashboard-grid.map-focus-mode { grid-template-columns:minmax(0,1fr); }
+.dashboard-grid.map-focus-mode .map-panel { width:100%; }
+.dashboard-grid.has-info-panel { grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr); }
+.country-legend-button { display:flex; align-items:center; gap:8px; }
