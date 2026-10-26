@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createInitialState } from "./data/scenario";
 import { advanceOneDay } from "./game/simulation";
 import type { GameState } from "./game/types";
-import { loadGame, saveGame, parseCampaignFile, serializeCampaign, listSaveSlots, saveToSlot, loadSaveSlot, renameSaveSlot, deleteSaveSlot } from "./persistence/saveGame";
+import { loadGame, saveGame, parseCampaignFile, serializeCampaign, listSaveSlots, saveToSlot, loadSaveSlot, renameSaveSlot, deleteSaveSlot, exportRawSaveRecord } from "./persistence/saveGame";
 import type { SaveSlot } from "./persistence/saveGame";
 import HomePage from "./pages/HomePage";
 import GameplayPage from "./pages/GameplayPage";
@@ -167,6 +167,24 @@ export default function App() {
     catch (error) { setNotice("Não foi possível renomear: " + (error instanceof Error ? error.message : "erro desconhecido")); }
   }
 
+  async function exportRawSave(id: string) {
+    try {
+      const raw = await exportRawSaveRecord(id);
+      const blob = new Blob([raw], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `salvamento-bruto-${id.replace(/[^a-zA-Z0-9_-]/g, "-")}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice("Cópia bruta exportada. O salvamento original continua intacto.");
+    } catch (error) {
+      setNotice("Não foi possível exportar os dados brutos: " + (error instanceof Error ? error.message : "erro desconhecido"));
+    }
+  }
+
   async function deleteSlot(id: string) {
     try { await deleteSaveSlot(id); setNotice("Salvamento excluído."); refreshSaveSlots(); }
     catch (error) { setNotice("Não foi possível excluir: " + (error instanceof Error ? error.message : "erro desconhecido")); }
@@ -195,5 +213,5 @@ export default function App() {
 
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
   if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
-  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} />;
+  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} onExportRawSave={id => void exportRawSave(id)} />;
 }
