@@ -14,6 +14,8 @@ export type SaveSlot = {
   scenarioId: string;
   mode: string;
   gameVersion: string;
+  difficulty: string;
+  aiProfile: string;
   date: string;
   day: number;
   savedAt: string;
@@ -109,6 +111,8 @@ export function migrateStoredRecord(value: unknown): GameState {
   normalized.scenarioId = typeof normalized.scenarioId === "string" && normalized.scenarioId.trim() ? normalized.scenarioId : "legacy-unknown";
   normalized.mode = normalized.mode ?? "history";
   normalized.gameVersion = typeof normalized.gameVersion === "string" && normalized.gameVersion.trim() ? normalized.gameVersion : "unknown";
+  normalized.difficulty = ["very-easy", "easy", "normal", "hard", "very-hard"].includes(normalized.difficulty ?? "") ? normalized.difficulty : "normal";
+  normalized.aiProfile = typeof normalized.aiProfile === "string" && normalized.aiProfile.trim() ? normalized.aiProfile : "default";
   if (normalized.citizenProfile) {
     const profile = normalized.citizenProfile as Partial<NonNullable<GameState["citizenProfile"]>>;
     normalized.citizenProfile = {
@@ -158,7 +162,7 @@ async function writeRecord(id: string, state: GameState, name: string): Promise<
       transaction.objectStore(STORE).put({
         ...structuredClone(safeState),
         storageVersion: 1,
-        saveMeta: { id, name: name.trim(), savedAt: new Date().toISOString(), campaignName: safeState.campaignName, scenarioId: safeState.scenarioId, mode: safeState.mode, gameVersion: safeState.gameVersion },
+        saveMeta: { id, name: name.trim(), savedAt: new Date().toISOString(), campaignName: safeState.campaignName, scenarioId: safeState.scenarioId, mode: safeState.mode, gameVersion: safeState.gameVersion, difficulty: safeState.difficulty, aiProfile: safeState.aiProfile },
       }, slotKey(id));
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Falha ao gravar a campanha."));
@@ -247,6 +251,8 @@ export async function listSaveSlots(): Promise<SaveSlot[]> {
       scenarioId: typeof meta?.scenarioId === "string" ? meta.scenarioId : (typeof item.scenarioId === "string" ? item.scenarioId : "legacy-unknown"),
       mode: typeof meta?.mode === "string" ? meta.mode : (typeof item.mode === "string" ? item.mode : "history"),
       gameVersion: typeof meta?.gameVersion === "string" ? meta.gameVersion : (typeof item.gameVersion === "string" ? item.gameVersion : "unknown"),
+      difficulty: typeof meta?.difficulty === "string" ? meta.difficulty : (typeof item.difficulty === "string" ? item.difficulty : "normal"),
+      aiProfile: typeof meta?.aiProfile === "string" ? meta.aiProfile : (typeof item.aiProfile === "string" ? item.aiProfile : "default"),
       date: hasBasicMetadata ? String(item.date) : "—",
       day: hasBasicMetadata ? item.day as number : 0,
       savedAt: isAuto && typeof item.lastSavedAt === "string" ? item.lastSavedAt :
@@ -269,7 +275,7 @@ export async function saveToSlot(state: GameState, name: string): Promise<SaveSl
   await writeRecord(id, state, cleanName);
   return {
     id, name: cleanName, campaignName: state.campaignName,
-    scenarioId: state.scenarioId ?? "legacy-unknown", mode: state.mode ?? "history", gameVersion: state.gameVersion ?? "unknown", date: state.date,
+    scenarioId: state.scenarioId ?? "legacy-unknown", mode: state.mode ?? "history", gameVersion: state.gameVersion ?? "unknown", difficulty: state.difficulty ?? "normal", aiProfile: state.aiProfile ?? "default", date: state.date,
     day: state.day, savedAt: new Date().toISOString(), isAuto: false,
   };
 }

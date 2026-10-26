@@ -12,6 +12,7 @@ import { importTerritoriesFromGeoJSON } from "./map/geoJson";
 
 type Page = "start" | "home" | "about" | "scenario" | "play" | "settings" | "setup" | "gameplay";
 type CampaignSetup = { countryId: string; customNation: boolean; customName: string; customColor: string };
+type PortalCampaignOptions = { scenarioId: string; countryName: string; campaignName: string; difficulty: "very-easy" | "easy" | "normal" | "hard" | "very-hard"; aiModel: string };
 function currentPage(): Page {
   const path = window.location.pathname.replace(/\/+$/, "");
   if (path === "/gameplay") return "gameplay";
@@ -99,6 +100,36 @@ export default function App() {
     setState(nextState);
     setTimeSpeed(0);
     setNotice("Modo História iniciado. Você controla " + playableCountry.name + ".");
+    navigate("gameplay");
+  };
+
+  const startConfiguredCampaign = (options: PortalCampaignOptions) => {
+    const initial = createInitialState();
+    const normalizedCountry = options.countryName.trim().toLocaleLowerCase("pt-BR");
+    let selected = initial.countries.find(country => country.name.toLocaleLowerCase("pt-BR") === normalizedCountry || country.id.toLocaleLowerCase("pt-BR") === normalizedCountry);
+    if (!selected) selected = initial.countries[0];
+    const countries = initial.countries.map(country => ({
+      ...country,
+      name: country.id === selected!.id && !initial.countries.some(item => item.name.toLocaleLowerCase("pt-BR") === normalizedCountry) ? options.countryName.trim() : country.name,
+      isPlayer: country.id === selected!.id,
+    }));
+    const selectedCountry = countries.find(country => country.id === selected!.id)!;
+    const firstTerritory = initial.territories.find(territory => territory.countryId === selectedCountry.id) ?? initial.territories[0];
+    const nextState: GameState = {
+      ...initial,
+      campaignName: options.campaignName.trim() || "Modern Day",
+      scenarioId: options.scenarioId,
+      mode: "history",
+      difficulty: options.difficulty,
+      aiProfile: options.aiModel,
+      countries,
+      selectedCountryId: selectedCountry.id,
+      selectedTerritoryId: firstTerritory.id,
+      events: [{ id: "start", day: 0, title: "Uma nova campanha", description: `${selectedCountry.name} inicia uma campanha no cenário ${options.scenarioId}. Dificuldade: ${options.difficulty}; perfil de IA: ${options.aiModel}.` }],
+    };
+    setState(nextState);
+    setTimeSpeed(0);
+    setNotice(`Campanha "${nextState.campaignName}" criada com ${selectedCountry.name}. A simulação começa pausada.`);
     navigate("gameplay");
   };
 
@@ -223,7 +254,7 @@ export default function App() {
   }
 
   if (page === "start") return <PortalPage view="start" onNavigate={path => { window.history.pushState({}, "", path); setPage(path === "/home" ? "home" : "start"); }} onStart={() => navigate("home")} onPlay={() => navigate("setup")} />;
-  if (page === "home" || page === "about" || page === "scenario" || page === "play" || page === "settings") return <PortalPage view={page} onNavigate={path => { window.history.pushState({}, "", path); setPage(path === "/home" ? "home" : path === "/about" ? "about" : path.startsWith("/settings/") ? "settings" : path.startsWith("/play/") ? "play" : "scenario"); }} onStart={() => navigate("home")} onPlay={() => navigate("setup")} onContinue={() => void load()} />;
+  if (page === "home" || page === "about" || page === "scenario" || page === "play" || page === "settings") return <PortalPage view={page} onNavigate={path => { window.history.pushState({}, "", path); setPage(path === "/home" ? "home" : path === "/about" ? "about" : path.startsWith("/settings/") ? "settings" : path.startsWith("/play/") ? "play" : "scenario"); }} onStart={() => navigate("home")} onPlay={() => navigate("setup")} onContinue={() => void load()} onStartConfigured={startConfiguredCampaign} />;
   if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
   return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} onExportRawSave={id => void exportRawSave(id)} onImportRawRecovery={file => void importRawRecovery(file)} />;
 }
