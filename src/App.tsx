@@ -16,6 +16,7 @@ export default function App() {
   const [state, setState] = useState<GameState>(() => createInitialState());
   const [notice, setNotice] = useState("Selecione territórios no mapa e avance o tempo para iniciar a simulação.");
   const [busy, setBusy] = useState(false);
+  const [timeSpeed, setTimeSpeed] = useState(0);
 
   useEffect(() => {
     const onPopState = () => setPage(currentPage());
@@ -23,10 +24,19 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  // A velocidade altera apenas a cadência dos ticks; cada tick continua sendo exatamente um dia.
+  useEffect(() => {
+    if (page !== "gameplay" || timeSpeed === 0 || busy) return;
+    const intervalMs = 2000 / timeSpeed;
+    const timer = window.setInterval(() => setState(current => advanceOneDay(current)), intervalMs);
+    return () => window.clearInterval(timer);
+  }, [page, timeSpeed, busy]);
+
   const navigate = useCallback((next: Page) => {
     const path = next === "gameplay" ? "/gameplay" : "/";
     if (window.location.pathname !== path) window.history.pushState({}, "", path);
     setPage(next);
+    if (next === "home") setTimeSpeed(0);
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
@@ -37,6 +47,7 @@ export default function App() {
   };
   const startCampaign = () => {
     setState(createInitialState());
+    setTimeSpeed(0);
     setNotice("Nova campanha iniciada. Selecione territórios no mapa e avance o tempo.");
     navigate("gameplay");
   };
@@ -46,6 +57,7 @@ export default function App() {
   };
   const newCampaign = () => {
     setState(createInitialState());
+    setTimeSpeed(0);
     setNotice("Nova campanha iniciada. O salvamento anterior permanece disponível até ser sobrescrito.");
   };
   async function save() {
@@ -60,7 +72,8 @@ export default function App() {
       const saved = await loadGame();
       if (saved) {
         setState(saved);
-        setNotice("Campanha carregada.");
+        setTimeSpeed(0);
+        setNotice("Campanha carregada em pausa.");
         navigate("gameplay");
       } else setNotice("Nenhum salvamento encontrado neste navegador. Inicie uma nova campanha.");
     } catch (error) {
@@ -69,5 +82,5 @@ export default function App() {
   }
 
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
-  return <GameplayPage state={state} notice={notice} busy={busy} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} />;
+  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} />;
 }
