@@ -113,7 +113,7 @@ export function migrateStoredRecord(value: unknown): GameState {
     typeof event.description === "string" && typeof event.requiresDecision === "boolean"
   ))) throw new Error("Fila de eventos inválida no salvamento.");
   if (state.pendingDecision !== undefined && (!state.pendingDecision || typeof state.pendingDecision.id !== "string" ||
-    !Number.isInteger(state.pendingDecision.day) || typeof state.pendingDecision.title !== "string" || typeof state.pendingDecision.description !== "string")) {
+    !Number.isInteger(state.pendingDecision.day) || state.pendingDecision.day < 0 || typeof state.pendingDecision.title !== "string" || typeof state.pendingDecision.description !== "string")) {
     throw new Error("Decisão pendente inválida no salvamento.");
   }
   const normalized = structuredClone(state) as GameState;
