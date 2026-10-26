@@ -81,7 +81,9 @@ export function queueGameEvent(current: GameState, event: ScheduledGameEvent): G
 export function resolvePendingDecision(current: GameState): GameState {
   if (!current.pendingDecision) return current;
   const next = structuredClone(current);
-  next.events.unshift(next.pendingDecision);
+  const decision = next.pendingDecision;
+  if (!decision) return current;
+  next.events.unshift(decision);
   next.pendingDecision = undefined;
   next.events = next.events.slice(0, 12);
   return next;
