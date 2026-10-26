@@ -124,3 +124,31 @@ export function importTerritoriesFromGeoJSON(input: unknown, validCountryIds?: S
     };
   });
 }
+
+/** Testa se um ponto pertence ao território, incluindo bordas externas e excluindo buracos internos. */
+export function territoryContainsPoint(territory: Territory, point: MapPosition): boolean {
+  const onSegment = (p: MapPosition, a: MapPosition, b: MapPosition) => {
+    const cross = (p[1] - a[1]) * (b[0] - a[0]) - (p[0] - a[0]) * (b[1] - a[1]);
+    const scale = Math.max(1, Math.abs(a[0]), Math.abs(a[1]), Math.abs(b[0]), Math.abs(b[1]));
+    if (Math.abs(cross) > 1e-9 * scale) return false;
+    const dot = (p[0] - a[0]) * (p[0] - b[0]) + (p[1] - a[1]) * (p[1] - b[1]);
+    return dot <= 1e-9 * scale;
+  };
+  const inRing = (p: MapPosition, ring: MapPosition[]) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[j], b = ring[i];
+      if (onSegment(p, a, b)) return true;
+      const crosses = (a[1] > p[1]) !== (b[1] > p[1]) &&
+        p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / ((b[1] - a[1]) || Number.EPSILON) + a[0];
+      if (crosses) inside = !inside;
+    }
+    return inside;
+  };
+  const polygons = territory.polygons?.length ? territory.polygons : [territory.points];
+  return polygons.some((outer, index) => {
+    if (!inRing(point, outer)) return false;
+    const holes = territory.polygonHoles?.[index] ?? [];
+    return !holes.some(hole => inRing(point, hole));
+  });
+}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { importTerritoriesFromGeoJSON } from "../src/map/geoJson.ts";
+import { importTerritoriesFromGeoJSON, territoryContainsPoint } from "../src/map/geoJson.ts";
 
 const polygon = (id = "t1", coordinates = [[[0, 0], [4, 0], [4, 4], [0, 4], [0, 0]]], properties = {}) => ({
   type: "Feature",
@@ -73,4 +73,17 @@ test("rejects malformed internal rings", () => {
     [[2, 2], [3, 3], [4, 4], [2, 2]],
   ]);
   assert.throws(() => importTerritoriesFromGeoJSON(collection(feature)), /sem área válida/);
+});
+
+
+test("selects territorial interiors and outer borders but excludes internal holes", () => {
+  const territory = importTerritoriesFromGeoJSON(collection(polygon("t1", [
+    [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]],
+    [[3, 3], [7, 3], [7, 7], [3, 7], [3, 3]],
+  ])), new Set(["c1"]))[0];
+  assert.equal(territoryContainsPoint(territory, [2, 2]), true);
+  assert.equal(territoryContainsPoint(territory, [0, 5]), true, "outer border should remain selectable");
+  assert.equal(territoryContainsPoint(territory, [12, 5]), false);
+  assert.equal(territoryContainsPoint(territory, [5, 5]), false, "hole interior must not select the territory");
+  assert.equal(territoryContainsPoint(territory, [3, 5]), false, "hole border must not select the territory");
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Application, Container, Graphics, Text } from "pixi.js";
 import type { GameState, MapPosition, Territory } from "../game/types";
+import { territoryContainsPoint } from "./geoJson";
 
 type Props = { state: GameState; onSelectTerritory: (id: string) => void };
 
@@ -33,17 +34,6 @@ function drawPolygon(g: Graphics, points: MapPosition[], holes: MapPosition[][],
 
 function territoryPolygons(territory: Territory): MapPosition[][] {
   return territory.polygons?.length ? territory.polygons : [territory.points];
-}
-
-function pointInRing(point: MapPosition, ring: MapPosition[]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const a = ring[i], b = ring[j];
-    const crosses = (a[1] > point[1]) !== (b[1] > point[1]) &&
-      point[0] < ((b[0] - a[0]) * (point[1] - a[1])) / ((b[1] - a[1]) || Number.EPSILON) + a[0];
-    if (crosses) inside = !inside;
-  }
-  return inside;
 }
 
 export default function WorldMap({ state, onSelectTerritory }: Props) {
@@ -149,7 +139,7 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
                 }
                 const local = world.toLocal(event.global);
                 const point: MapPosition = [local.x, local.y];
-                if (!pointInRing(point, points) || holes.some(hole => pointInRing(point, hole))) return;
+                if (!territoryContainsPoint(territory, point)) return;
                 callback.current(territory.id);
               });
               world.addChild(shape);
