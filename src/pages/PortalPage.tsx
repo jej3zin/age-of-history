@@ -13,7 +13,7 @@ const scenarios = [
 ];
 function Cover({kind}:{kind:string}) { return <div className={`scenario-cover cover-${kind}`}><div className="cover-grid"/><div className="cover-land cover-land-a"/><div className="cover-land cover-land-b"/><div className="cover-land cover-land-c"/><span className="cover-compass">✳</span><span className="cover-caption">AGE OF HISTORY <b>·</b> MAP ARCHIVE</span></div>; }
 function UniversalHeader({onNavigate,onContinue}:{onNavigate:(p:string)=>void;onContinue?:()=>void}) { return <Header variant="portal" onExplore={()=>onNavigate("/home")} onGames={()=>onContinue?.()} onAbout={()=>onNavigate("/about")} />; }
-export default function PortalPage({view,onNavigate,onStart,onPlay,onContinue,onStartConfigured}:Props) {
+export default function PortalPage({view,onNavigate,onStart,onContinue,onStartConfigured}:Props) {
  const [activeTab,setActiveTab]=useState("recomendados"); const [open,setOpen]=useState<string[]>(["about"]); const [selectedCountry,setSelectedCountry]=useState("Belarus"); const [difficulty,setDifficulty]=useState("normal"); const [aiModel,setAiModel]=useState("default"); const [campaignName,setCampaignName]=useState("Modern Day");
  const toggle=(key:string)=>setOpen(current=>current.includes(key)?current.filter(item=>item!==key):[...current,key]);
  if(view==="start") return <main className="start-page"><div className="start-grain"/><div className="start-emblem">AH</div><p className="start-kicker">UM MUNDO EM SUAS MÃOS</p><h1>Age of <em>History</em></h1><p className="start-subtitle">Crie ou governe.</p><button className="portal-primary start-button" onClick={onStart}>Começar <span>↗</span></button><span className="start-version">ESTRATÉGIA · HISTÓRIA · COMUNIDADE</span></main>;
