@@ -4,6 +4,9 @@ import type { GameState, MapPosition, Territory } from "../game/types";
 
 type Props = { state: GameState; onSelectTerritory: (id: string) => void };
 
+const MAP_WIDTH = 760;
+const MAP_HEIGHT = 470;
+
 function drawPolygon(g: Graphics, points: MapPosition[], color: number, selected: boolean) {
   const first = points[0];
   if (!first) return;
@@ -33,6 +36,7 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
     let destroyed = false;
     let app: Application | null = null;
     let observer: ResizeObserver | undefined;
+    let cleanupInteractions: (() => void) | undefined;
 
     const destroyApp = () => {
       if (!app || !initialized || destroyed) return;
@@ -65,23 +69,41 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
         }
 
         element.replaceChildren(pixi.canvas);
-        pixi.canvas.style.width = "100%";
-        pixi.canvas.style.height = "100%";
-        pixi.canvas.style.display = "block";
+        const canvas = pixi.canvas;
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.display = "block";
+        canvas.style.touchAction = "none";
 
         const world = new Container();
         pixi.stage.addChild(world);
+
+        let zoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let pointerStart: { x: number; y: number; panX: number; panY: number } | null = null;
+        let dragged = false;
+
+        function applyTransform() {
+          const fitScale = Math.min(pixi.screen.width / MAP_WIDTH, pixi.screen.height / MAP_HEIGHT);
+          const scale = fitScale * zoom;
+          world.scale.set(scale);
+          world.position.set(
+            (pixi.screen.width - MAP_WIDTH * scale) / 2 + panX,
+            (pixi.screen.height - MAP_HEIGHT * scale) / 2 + panY,
+          );
+        }
 
         function render() {
           for (const child of world.removeChildren()) child.destroy();
 
           const bg = new Graphics();
-          bg.rect(0, 0, 760, 470).fill(0x101923);
-          for (let x = 20; x < 760; x += 40) {
-            bg.moveTo(x, 0).lineTo(x, 470).stroke({ color: 0x1b2835, width: 1 });
+          bg.rect(0, 0, MAP_WIDTH, MAP_HEIGHT).fill(0x101923);
+          for (let x = 20; x < MAP_WIDTH; x += 40) {
+            bg.moveTo(x, 0).lineTo(x, MAP_HEIGHT).stroke({ color: 0x1b2835, width: 1 });
           }
-          for (let y = 20; y < 470; y += 40) {
-            bg.moveTo(0, y).lineTo(760, y).stroke({ color: 0x1b2835, width: 1 });
+          for (let y = 20; y < MAP_HEIGHT; y += 40) {
+            bg.moveTo(0, y).lineTo(MAP_WIDTH, y).stroke({ color: 0x1b2835, width: 1 });
           }
           world.addChild(bg);
 
@@ -94,7 +116,13 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
               drawPolygon(shape, points, country?.color ?? 0x778899, selected);
               shape.eventMode = "static";
               shape.cursor = "pointer";
-              shape.on("pointertap", () => callback.current(territory.id));
+              shape.on("pointertap", () => {
+                if (dragged) {
+                  dragged = false;
+                  return;
+                }
+                callback.current(territory.id);
+              });
               world.addChild(shape);
             }
 
@@ -116,18 +144,55 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
             label.eventMode = "none";
             world.addChild(label);
           }
-
-          const scale = Math.min(pixi.screen.width / 760, pixi.screen.height / 470);
-          world.scale.set(scale);
-          world.position.set(
-            (pixi.screen.width - 760 * scale) / 2,
-            (pixi.screen.height - 470 * scale) / 2,
-          );
+          applyTransform();
         }
+
+        const onPointerDown = (event: PointerEvent) => {
+          if (event.button !== 0) return;
+          pointerStart = { x: event.clientX, y: event.clientY, panX, panY };
+          dragged = false;
+          canvas.setPointerCapture(event.pointerId);
+        };
+        const onPointerMove = (event: PointerEvent) => {
+          if (!pointerStart) return;
+          const dx = event.clientX - pointerStart.x;
+          const dy = event.clientY - pointerStart.y;
+          if (Math.abs(dx) + Math.abs(dy) > 4) dragged = true;
+          if (dragged) {
+            panX = pointerStart.panX + dx;
+            panY = pointerStart.panY + dy;
+            applyTransform();
+          }
+        };
+        const onPointerUp = () => {
+          pointerStart = null;
+        };
+        const onWheel = (event: WheelEvent) => {
+          event.preventDefault();
+          const oldZoom = zoom;
+          zoom = Math.max(1, Math.min(5, zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12)));
+          if (zoom === oldZoom) return;
+          applyTransform();
+        };
+
+        canvas.addEventListener("pointerdown", onPointerDown);
+        canvas.addEventListener("pointermove", onPointerMove);
+        canvas.addEventListener("pointerup", onPointerUp);
+        canvas.addEventListener("pointercancel", onPointerUp);
+        canvas.addEventListener("wheel", onWheel, { passive: false });
+        cleanupInteractions = () => {
+          canvas.removeEventListener("pointerdown", onPointerDown);
+          canvas.removeEventListener("pointermove", onPointerMove);
+          canvas.removeEventListener("pointerup", onPointerUp);
+          canvas.removeEventListener("pointercancel", onPointerUp);
+          canvas.removeEventListener("wheel", onWheel);
+        };
 
         redraw.current = render;
         render();
-        observer = new ResizeObserver(render);
+        observer = new ResizeObserver(() => {
+          applyTransform();
+        });
         observer.observe(element);
       } catch (error) {
         if (initialized) destroyApp();
@@ -140,6 +205,7 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
     return () => {
       disposed = true;
       observer?.disconnect();
+      cleanupInteractions?.();
       redraw.current = null;
       destroyApp();
       host.current?.replaceChildren();
@@ -150,5 +216,5 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
     redraw.current?.();
   }, [state]);
 
-  return <div className="map-canvas" ref={host} aria-label="Mapa político interativo" />;
+  return <div className="map-canvas" ref={host} aria-label="Mapa político interativo. Use a roda do mouse para zoom e arraste para mover." />;
 }
