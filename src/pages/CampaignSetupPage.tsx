@@ -19,7 +19,6 @@ export default function CampaignSetupPage({ state, onCancel, onConfirm }: Props)
   const [family, setFamily] = useState("");
   const [error, setError] = useState("");
   const countries = useMemo(() => state.countries, [state.countries]);
-  const chosen = countries.find(country => country.id === countryId) ?? countries[0];
 
   function submit() {
     if (!countryId) { setError("Escolha uma nação para jogar."); return; }
