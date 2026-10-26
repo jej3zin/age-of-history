@@ -54,3 +54,23 @@ test("rejects negative population and production", () => {
   assert.throws(() => importTerritoriesFromGeoJSON(collection(polygon("bad", undefined, { population: -1 }))), /não negativos/);
   assert.throws(() => importTerritoriesFromGeoJSON(collection(polygon("bad", undefined, { production: -1 }))), /não negativos/);
 });
+
+test("preserves internal holes in Polygon and MultiPolygon", () => {
+  const feature = polygon("with-hole", [
+    [[0, 0], [8, 0], [8, 8], [0, 8], [0, 0]],
+    [[2, 2], [2, 4], [4, 4], [4, 2], [2, 2]],
+  ]);
+  const [territory] = importTerritoriesFromGeoJSON(collection(feature), new Set(["c1"]));
+  assert.equal(territory.polygons.length, 1);
+  assert.equal(territory.polygonHoles.length, 1);
+  assert.equal(territory.polygonHoles[0].length, 1);
+  assert.deepEqual(territory.polygonHoles[0][0][0], [2, 2]);
+});
+
+test("rejects malformed internal rings", () => {
+  const feature = polygon("bad-hole", [
+    [[0, 0], [8, 0], [8, 8], [0, 8], [0, 0]],
+    [[2, 2], [3, 3], [4, 4], [2, 2]],
+  ]);
+  assert.throws(() => importTerritoriesFromGeoJSON(collection(feature)), /sem área válida/);
+});
