@@ -9,7 +9,7 @@ import CampaignSetupPage from "./pages/CampaignSetupPage";
 import { importTerritoriesFromGeoJSON } from "./map/geoJson";
 
 type Page = "home" | "setup" | "gameplay";
-type CampaignSetup = { mode: "history" | "citizen"; countryId: string; customNation: boolean; customName: string; customColor: string; personName: string; profession: "Estudante" | "Trabalha"; family: string };
+type CampaignSetup = { countryId: string; customNation: boolean; customName: string; customColor: string };
 function currentPage(): Page {
   const path = window.location.pathname.replace(/\/+$/, "");
   return path === "/gameplay" ? "gameplay" : path === "/setup" ? "setup" : "home";
@@ -82,7 +82,7 @@ export default function App() {
     });
     const playableCountry = countries.find(country => country.id === setup.countryId) ?? countries[0];
     const firstTerritory = initial.territories.find(territory => territory.countryId === setup.countryId) ?? initial.territories[0];
-    const campaignName = setup.mode === "citizen" ? `${setup.personName} — Modo Cidadão` : `${playableCountry.name} — Nova campanha`;
+    const campaignName = `${playableCountry.name} — Nova campanha`;
     const nextState: GameState = {
       ...initial,
       campaignName,
@@ -92,16 +92,13 @@ export default function App() {
       events: [{
         id: "start",
         day: 0,
-        title: setup.mode === "citizen" ? `A vida de ${setup.personName} começa` : "Uma nova campanha",
-        description: setup.mode === "citizen"
-          ? `${setup.personName} começa sua jornada em ${playableCountry.name}. Profissão: ${setup.profession}. ${setup.family ? "Família: " + setup.family + "." : "Sem família registrada."}`
-          : `${playableCountry.name} inicia uma nova campanha. Você está no comando desta nação.`,
+        title: "Uma nova campanha",
+        description: `${playableCountry.name} inicia uma nova campanha. Você está no comando desta nação.`,
       }],
-      ...(setup.mode === "citizen" ? { citizenProfile: { name: setup.personName, profession: setup.profession, family: setup.family, money: 500, dailyIncome: setup.profession === "Trabalha" ? 150 : 0, dailyExpense: (setup.profession === "Estudante" ? 100 : 0) + (setup.family ? 75 : 0) } } : {}),
     };
     setState(nextState);
     setTimeSpeed(0);
-    setNotice(setup.mode === "citizen" ? "Modo Cidadão iniciado. Profissão e família influenciam o orçamento diário." : "Nova campanha iniciada. Você controla " + playableCountry.name + ".");
+    setNotice("Modo História iniciado. Você controla " + playableCountry.name + ".");
     navigate("gameplay");
   };
 
