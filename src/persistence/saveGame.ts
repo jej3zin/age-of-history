@@ -103,9 +103,11 @@ export function migrateStoredRecord(value: unknown): GameState {
     new Set(state.territories.map(territory => territory.id)).size !== state.territories.length ||
     !state.territories.every(territory => state.countries!.some(country => country.id === territory.countryId)) ||
     !state.territories.some(territory => territory.id === state.selectedTerritoryId && territory.countryId === state.selectedCountryId) ||
-    !state.events.every(event => event && typeof event.id === "string" && Number.isInteger(event.day) &&
-      event.day >= 0 && typeof event.title === "string" && typeof event.description === "string")
-  ) throw new Error("Campanha inválida ou incompatível. Verifique a versão, a data, os países, os territórios e a seleção.");
+    !state.events.every(event => event && typeof event.id === "string" && event.id.trim().length > 0 &&
+      Number.isInteger(event.day) && event.day >= 0 &&
+      typeof event.title === "string" && typeof event.description === "string") ||
+    new Set(state.events.map(event => event.id)).size !== state.events.length
+  ) throw new Error("Campanha inválida ou incompatível. Verifique a versão, a data, os países, os territórios, os eventos e a seleção.");
 
   if (state.eventQueue !== undefined && (!Array.isArray(state.eventQueue) || !state.eventQueue.every(event =>
     event && typeof event.id === "string" && event.id.trim() && Number.isInteger(event.dueDay) && event.dueDay >= 0 &&
