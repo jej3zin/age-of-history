@@ -68,12 +68,6 @@ export default function App() {
     setState(s => ({ ...s, selectedTerritoryId: id, selectedCountryId: territory.countryId }));
   };
 
-  const startCampaign = () => {
-    setState(createInitialState());
-    setTimeSpeed(0);
-    navigate("setup");
-  };
-
   const confirmCampaign = (setup: CampaignSetup) => {
     const initial = createInitialState();
     const countries = initial.countries.map(country => {
