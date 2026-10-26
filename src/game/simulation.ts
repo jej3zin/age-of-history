@@ -15,6 +15,10 @@ export function advanceOneDay(current: GameState): GameState {
   next.day += 1;
   next.date = addDays(next.date, 1);
 
+  if (next.citizenProfile) {
+    next.citizenProfile.money += next.citizenProfile.dailyIncome - next.citizenProfile.dailyExpense;
+  }
+
   for (const country of next.countries) {
     country.treasury += country.dailyIncome - country.dailyExpense;
     country.population += Math.round(country.population * 0.00001);
