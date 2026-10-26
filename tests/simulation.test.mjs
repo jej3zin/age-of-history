@@ -59,3 +59,26 @@ test("creates an annual report every 365 days", () => {
   assert.equal(next.day, 365);
   assert.equal(next.events[0].id, "annual-365");
 });
+
+
+test("runs a long campaign deterministically without invalid numeric state", () => {
+  const initial = state({
+    countries: [
+      { id: "c1", name: "País A", color: 0xffffff, treasury: 100, dailyIncome: 10, dailyExpense: 4, population: 100000, production: 100, stability: 50, isPlayer: true },
+      { id: "c2", name: "País B", color: 0xaaaaaa, treasury: 80, dailyIncome: 2, dailyExpense: 6, population: 50000, production: 70, stability: 65, isPlayer: false },
+    ],
+  });
+  const runCampaign = (source) => {
+    let current = source;
+    for (let day = 0; day < 1000; day += 1) current = advanceOneDay(current);
+    return current;
+  };
+  const first = runCampaign(initial);
+  const second = runCampaign(initial);
+  assert.deepEqual(first, second);
+  assert.equal(first.day, 1000);
+  assert.equal(first.date, "1446-09-27");
+  assert.equal(first.events.length, 12);
+  assert.ok(first.countries.every(country => Number.isFinite(country.treasury) && Number.isFinite(country.population) && Number.isFinite(country.production) && country.stability >= 0 && country.stability <= 100));
+  assert.equal(initial.day, 0, "simulation must not mutate its initial state");
+});
