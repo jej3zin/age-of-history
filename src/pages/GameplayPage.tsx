@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { GameState } from "../game/types";
 import { formatDate, formatMoney, formatNumber } from "../game/simulation";
+import { useEffect } from "react";
+import type { SaveSlot } from "../persistence/saveGame";
 import WorldMap from "../map/WorldMap";
 import StatCard from "../components/StatCard";
 
@@ -19,14 +21,24 @@ type Props = {
   onImportGeoJSON: (file: File) => void;
   onExportCampaign: () => void;
   onImportCampaign: (file: File) => void;
+  saveSlots: SaveSlot[];
+  onRefreshSaveSlots: () => void;
+  onSaveSlot: (name: string) => void;
+  onLoadSlot: (id: string) => void;
+  onRenameSlot: (id: string, name: string) => void;
+  onDeleteSlot: (id: string) => void;
 };
 
 export default function GameplayPage({
   state, notice, busy, timeSpeed, onSetTimeSpeed, onHome, onNewCampaign,
   onLoad, onSave, onNextDay, onSelectTerritory, onImportGeoJSON, onExportCampaign, onImportCampaign,
+  saveSlots, onRefreshSaveSlots, onSaveSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
 }: Props) {
   const [infoPanel, setInfoPanel] = useState<"territory" | "country" | null>(null);
   const [inspectedCountryId, setInspectedCountryId] = useState<string | null>(null);
+  const [saveName, setSaveName] = useState("");
+  const [slotPanelOpen, setSlotPanelOpen] = useState(false);
+  useEffect(() => { onRefreshSaveSlots(); }, [onRefreshSaveSlots]);
   const selected = state.territories.find((territory) => territory.id === state.selectedTerritoryId) ?? state.territories[0];
   const selectedCountry = state.countries.find((country) => country.id === selected?.countryId) ?? state.countries[0];
   const inspectedCountry = state.countries.find((country) => country.id === inspectedCountryId) ?? selectedCountry;
@@ -48,7 +60,8 @@ export default function GameplayPage({
           <button className="button secondary" disabled={busy} onClick={onHome}>Menu inicial</button>
           <button className="button secondary" disabled={busy} onClick={onNewCampaign}>Nova campanha</button>
           <button className="button secondary" disabled={busy} onClick={onLoad}>Carregar</button>
-          <button className="button secondary" disabled={busy} onClick={onSave}>Salvar campanha</button>
+          <button className="button secondary" disabled={busy} onClick={onSave}>Salvar automático</button>
+          <button className="button secondary" disabled={busy} onClick={() => setSlotPanelOpen(value => !value)}>Slots ({saveSlots.length})</button>
           <button className="button secondary" disabled={busy} onClick={onExportCampaign}>Exportar JSON</button>
           <label className="button secondary geojson-import" aria-label="Importar campanha JSON">
             Importar campanha
@@ -73,6 +86,37 @@ export default function GameplayPage({
           <button className="button primary" disabled={busy} onClick={onNextDay}>Avançar 1 dia <span>→</span></button>
         </div>
       </section>
+
+      {slotPanelOpen && (
+        <section className="panel save-slots-panel">
+          <div className="panel-header">
+            <div><span className="eyebrow">GERENCIAMENTO DE CAMPANHAS</span><h2>Salvamentos locais</h2></div>
+            <button className="button secondary" onClick={() => setSlotPanelOpen(false)}>Fechar ×</button>
+          </div>
+          <form className="save-slot-create" onSubmit={(event) => { event.preventDefault(); if (saveName.trim()) { onSaveSlot(saveName); setSaveName(""); } }}>
+            <input aria-label="Nome do novo salvamento" value={saveName} maxLength={60} onChange={event => setSaveName(event.target.value)} placeholder={state.campaignName + " — Dia " + (state.day + 1)} />
+            <button className="button primary" disabled={busy || !saveName.trim()}>Criar salvamento</button>
+          </form>
+          {saveSlots.length === 0 ? <p>Nenhum salvamento listado ainda. Crie um slot para guardar uma versão independente da campanha.</p> : (
+            <div className="save-slot-list">
+              {saveSlots.map(slot => (
+                <article className="save-slot-row" key={slot.id}>
+                  <div className="save-slot-info">
+                    <strong>{slot.name}</strong>
+                    <span>{slot.campaignName} · {formatDate(slot.date)} · Dia {slot.day + 1}</span>
+                    <small>{slot.isAuto ? "Salvamento automático" : "Salvamento manual"} · {slot.savedAt === "Data não registrada" ? slot.savedAt : new Date(slot.savedAt).toLocaleString()}</small>
+                  </div>
+                  <div className="save-slot-actions">
+                    <button className="button secondary" disabled={busy} onClick={() => onLoadSlot(slot.id)}>Carregar</button>
+                    {!slot.isAuto && <button className="button secondary" disabled={busy} onClick={() => { const name = window.prompt("Novo nome do salvamento", slot.name); if (name !== null) onRenameSlot(slot.id, name); }}>Renomear</button>}
+                    {!slot.isAuto && <button className="button secondary" disabled={busy} onClick={() => { if (window.confirm("Excluir o salvamento ‘" + slot.name + "’? Esta ação não pode ser desfeita.")) onDeleteSlot(slot.id); }}>Excluir</button>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="status-strip" aria-live="polite">
         <span className="status-icon">i</span>{notice} {timeSpeed > 0 && <span className="time-running">· Tempo: {timeSpeed}×</span>}
