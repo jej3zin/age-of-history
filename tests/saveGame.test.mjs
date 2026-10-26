@@ -110,3 +110,17 @@ test("rejeita envelope de recuperação inválido ou campanha bruta corrompida",
     record: { ...campaign(), schemaVersion: 77, storageVersion: 1 },
   })), /esquema não suportada/);
 });
+
+
+test("preserva metadados de cenário, modo, versão, dificuldade e perfil de IA no ciclo de exportação", () => {
+  const source = campaign({
+    scenarioId: "modern-day", mode: "history", gameVersion: "0.1.0",
+    difficulty: "hard", aiProfile: "advanced",
+  });
+  const imported = parseCampaignFile(serializeCampaign(source));
+  assert.equal(imported.scenarioId, "modern-day");
+  assert.equal(imported.mode, "history");
+  assert.equal(imported.gameVersion, "0.1.0");
+  assert.equal(imported.difficulty, "hard");
+  assert.equal(imported.aiProfile, "advanced");
+});
