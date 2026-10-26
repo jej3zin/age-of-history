@@ -333,8 +333,11 @@ export function parseRawSaveRecoveryFile(text: string): GameState {
   if (!envelope.record || typeof envelope.record !== "object") {
     throw new Error("O arquivo de recuperação não contém um registro de salvamento.");
   }
-  // migrateStoredRecord valida os dados e remove metadados locais por meio do estado normalizado.
-  return migrateStoredRecord(envelope.record);
+  // A validação acontece antes de descartar os metadados do armazenamento local.
+  const recovered = migrateStoredRecord(envelope.record);
+  delete (recovered as GameState & { storageVersion?: unknown }).storageVersion;
+  delete (recovered as GameState & { saveMeta?: unknown }).saveMeta;
+  return recovered;
 }
 
 export async function deleteSaveSlot(id: string): Promise<void> {
