@@ -1,33 +1,92 @@
 import type { GameState } from "../game/types";
+
 const DB = "age-of-history-prototype";
 const STORE = "campaigns";
 const KEY = "autosave";
+
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve,reject) => {
-    const req = indexedDB.open(DB,1);
-    req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+  if (typeof indexedDB === "undefined") {
+    return Promise.reject(new Error("Este navegador não oferece IndexedDB."));
+  }
+
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB, 1);
+
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(STORE)) {
+        request.result.createObjectStore(STORE);
+      }
+    };
+    request.onsuccess = () => {
+      request.result.onversionchange = () => request.result.close();
+      resolve(request.result);
+    };
+    request.onerror = () => reject(request.error ?? new Error("Falha ao abrir o banco local."));
+    request.onblocked = () => reject(new Error("O banco está ocupado por outra aba. Feche outras abas do jogo e tente novamente."));
   });
 }
+
 export async function saveGame(state: GameState): Promise<void> {
   const db = await openDb();
-  await new Promise<void>((resolve,reject) => {
-    const tx = db.transaction(STORE,"readwrite");
-    tx.objectStore(STORE).put({...structuredClone(state),lastSavedAt:new Date().toISOString()},KEY);
-    tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
-  });
-  db.close();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(STORE, "readwrite");
+      transaction.objectStore(STORE).put(
+        { ...structuredClone(state), lastSavedAt: new Date().toISOString() },
+        KEY,
+      );
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error("Falha ao gravar a campanha."));
+      transaction.onabort = () => reject(transaction.error ?? new Error("O salvamento foi cancelado."));
+    });
+  } finally {
+    db.close();
+  }
 }
-export async function loadGame(): Promise<GameState|null> {
+
+export async function loadGame(): Promise<GameState | null> {
   const db = await openDb();
-  const value = await new Promise<unknown>((resolve,reject) => {
-    const req = db.transaction(STORE,"readonly").objectStore(STORE).get(KEY);
-    req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
-  });
-  db.close();
+  let value: unknown;
+
+  try {
+    value = await new Promise<unknown>((resolve, reject) => {
+      const transaction = db.transaction(STORE, "readonly");
+      const request = transaction.objectStore(STORE).get(KEY);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error("Falha ao ler a campanha salva."));
+      transaction.onabort = () => reject(transaction.error ?? new Error("A leitura do salvamento foi cancelada."));
+    });
+  } finally {
+    db.close();
+  }
+
   if (!value || typeof value !== "object") return null;
+
   const state = value as Partial<GameState>;
-  if (state.schemaVersion !== 1 || typeof state.date !== "string" || !Array.isArray(state.countries) || !Array.isArray(state.territories) || !Array.isArray(state.events)) throw new Error("Salvamento inválido ou incompatível.");
+  if (
+    state.schemaVersion !== 1 ||
+    typeof state.date !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(state.date) ||
+    !Number.isInteger(state.day) ||
+    (state.day ?? -1) < 0 ||
+    !Array.isArray(state.countries) ||
+    !Array.isArray(state.territories) ||
+    !Array.isArray(state.events) ||
+    typeof state.selectedTerritoryId !== "string" ||
+    !state.countries.every((country) =>
+      country && typeof country.id === "string" &&
+      typeof country.name === "string" &&
+      Number.isFinite(country.treasury) &&
+      Number.isFinite(country.population)
+    ) ||
+    !state.territories.every((territory) =>
+      territory && typeof territory.id === "string" &&
+      typeof territory.countryId === "string" &&
+      Array.isArray(territory.points)
+    )
+  ) {
+    throw new Error("Salvamento inválido ou incompatível. Inicie uma nova campanha.");
+  }
+
   return state as GameState;
 }
