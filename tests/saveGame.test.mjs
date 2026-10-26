@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { migrateStoredRecord, parseCampaignFile, parseRawSaveRecoveryFile, serializeCampaign } from "../src/persistence/saveGame.ts";
+import { migrateStoredRecord, parseCampaignFile, parseRawSaveRecoveryFile, serializeCampaign, saveGame, loadGame, listSaveSlots } from "../src/persistence/saveGame.ts";
 
 function campaign(overrides = {}) {
   return {
@@ -198,4 +198,20 @@ test("rejects empty and duplicate IDs inside event history", () => {
     ],
   });
   assert.throws(() => migrateStoredRecord(duplicateIds), /Campanha inválida/);
+});
+
+
+test("fails clearly when IndexedDB is unavailable in the runtime", async () => {
+  if (typeof indexedDB !== "undefined") {
+    assert.fail("Este teste espera um runtime Node sem IndexedDB nativo.");
+  }
+  await assert.rejects(loadGame(), /não oferece IndexedDB/);
+  await assert.rejects(listSaveSlots(), /não oferece IndexedDB/);
+});
+
+test("validates a campaign before attempting IndexedDB persistence", async () => {
+  if (typeof indexedDB !== "undefined") {
+    assert.fail("Este teste espera um runtime Node sem IndexedDB nativo.");
+  }
+  await assert.rejects(saveGame(campaign({ day: -1 })), /Campanha inválida/);
 });
