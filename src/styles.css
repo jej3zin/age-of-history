@@ -67,3 +67,71 @@ body:has(.gameplay-shell) { overflow:hidden; }
 
 .geojson-import { display:inline-flex; align-items:center; cursor:pointer; }
 .geojson-import input { display:none; }
+
+
+/* Configuração de campanha sobre o mapa político padrão. */
+.setup-screen { position:relative; width:100%; min-height:100dvh; overflow:hidden; background:#0a1017; isolation:isolate; }
+.setup-map-background { position:absolute; inset:0; z-index:-3; opacity:.78; }
+.setup-map-background .map-canvas { width:100%; height:100%; }
+.setup-vignette { position:absolute; inset:0; z-index:-2; background:linear-gradient(90deg,rgba(7,12,18,.94) 0%,rgba(7,12,18,.76) 45%,rgba(7,12,18,.52) 100%),linear-gradient(0deg,rgba(7,12,18,.7),transparent 45%); pointer-events:none; }
+.setup-topbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:20px clamp(18px,4vw,56px); border-bottom:1px solid #ffffff16; background:rgba(7,12,18,.5); backdrop-filter:blur(12px); }
+.setup-topbar .brand { gap:12px; }
+.setup-topbar .brand > span:last-child { display:grid; gap:4px; }
+.setup-step { color:#9aa9b7; font-size:10px; letter-spacing:.13em; }
+.setup-step b { margin-left:12px; color:#f0a65e; }
+.setup-layout { width:min(1240px,calc(100% - 40px)); margin:0 auto; padding:clamp(26px,5vh,64px) 0 48px; display:grid; grid-template-columns:minmax(0,1fr) minmax(380px,520px); align-items:center; gap:clamp(28px,5vw,80px); }
+.setup-intro { max-width:530px; padding-bottom:30px; }
+.setup-intro h1 { margin:18px 0; font:600 clamp(40px,5.3vw,70px)/1.04 'Space Grotesk'; letter-spacing:-.04em; }
+.setup-intro h1 em { color:#f0a65e; font-style:normal; }
+.setup-intro p { max-width:410px; color:#a4b2bf; font-size:15px; line-height:1.8; }
+.setup-world-status { display:flex; align-items:center; gap:10px; margin-top:28px; color:#b3c0cb; font-size:11px; }
+.setup-separator { width:1px; height:14px; background:#45515d; margin:0 3px; }
+.setup-card { padding:25px; border:1px solid #ffffff20; border-radius:16px; background:rgba(13,21,30,.94); box-shadow:0 24px 80px #0007; backdrop-filter:blur(20px); }
+.setup-card-heading { margin-bottom:20px; }
+.setup-card-heading h2 { margin:7px 0 0; font:600 22px 'Space Grotesk'; }
+.setup-mode-switch { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:23px; }
+.setup-mode { display:grid; gap:6px; text-align:left; padding:14px; color:#aab8c5; border:1px solid #33414e; border-radius:10px; background:#111a23; cursor:pointer; }
+.setup-mode>span { color:#f0a65e; font-size:20px; }
+.setup-mode strong { color:#e9eef4; font-size:13px; }
+.setup-mode small { font-size:10px; color:#8999a8; }
+.setup-mode.active { border-color:#e5a05c; background:#d98b4515; box-shadow:inset 0 0 0 1px #d98b4522; }
+.setup-field { display:grid; gap:8px; margin:14px 0; }
+.setup-field label { color:#c5d0da; font-size:11px; font-weight:600; }
+.setup-field label span { color:#7f8f9e; font-weight:400; }
+.setup-field input:not([type=color]),.setup-field select { width:100%; min-width:0; padding:12px 13px; color:#e8eef4; background:#0d151d; border:1px solid #354451; border-radius:8px; font:inherit; font-size:12px; outline:none; }
+.setup-field input:focus,.setup-field select:focus { border-color:#e5a05c; box-shadow:0 0 0 3px #e5a05c20; }
+.setup-field select option { background:#111a23; }
+.setup-hint { margin:0; color:#7f8e9c; font-size:10px; line-height:1.55; }
+.setup-check { display:flex; align-items:center; gap:9px; margin:15px 0 5px; color:#cbd5de; font-size:11px; cursor:pointer; }
+.setup-check input { accent-color:#e5a05c; width:15px; height:15px; }
+.setup-custom-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(120px,.7fr); gap:12px; margin-top:4px; }
+.setup-color-row { display:flex; align-items:center; gap:10px; min-height:40px; padding:5px 8px; border:1px solid #354451; border-radius:8px; background:#0d151d; }
+.setup-color-row input { width:30px; height:28px; padding:0; border:0; background:transparent; cursor:pointer; }
+.setup-color-row span { color:#c5d0da; font-size:11px; font-family:monospace; }
+.setup-color-row i { width:15px; height:15px; margin-left:auto; border-radius:50%; border:1px solid #ffffff50; }
+.setup-citizen-section { margin-top:20px; padding-top:18px; border-top:1px solid #2a3945; }
+.setup-section-title { margin-bottom:12px; }
+.setup-section-title h3 { margin:5px 0 0; font:600 16px 'Space Grotesk'; }
+.setup-citizen-section .setup-field { margin:12px 0; }
+.setup-error { padding:10px 12px; border:1px solid #e47d7d55; border-radius:8px; background:#e47d7d12; color:#ffaaaa; font-size:11px; }
+.setup-actions { display:flex; justify-content:flex-end; gap:9px; padding-top:19px; margin-top:18px; border-top:1px solid #293742; }
+.setup-actions .button { min-width:110px; }
+.setup-footer { display:flex; justify-content:space-between; gap:16px; padding:16px clamp(18px,4vw,56px); border-top:1px solid #ffffff12; color:#758695; font-size:9px; letter-spacing:.08em; }
+.citizen-profile-panel { border-color:#d98b4544; }
+@media(max-width:850px) {
+  .setup-layout { grid-template-columns:1fr; max-width:580px; gap:18px; padding-top:32px; }
+  .setup-intro { padding-bottom:0; }
+  .setup-intro h1 { font-size:44px; margin:12px 0; }
+  .setup-intro p { margin-bottom:0; font-size:13px; }
+  .setup-world-status { margin-top:15px; }
+  .setup-card { padding:20px; }
+}
+@media(max-width:520px) {
+  .setup-topbar { padding:14px; }
+  .setup-step { font-size:8px; }
+  .setup-layout { width:calc(100% - 24px); padding:22px 0; }
+  .setup-intro h1 { font-size:36px; }
+  .setup-card { padding:15px; }
+  .setup-custom-fields { grid-template-columns:1fr; gap:0; }
+  .setup-footer { flex-direction:column; padding:13px 14px; }
+}
