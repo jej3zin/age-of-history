@@ -127,21 +127,32 @@ function readRequest<T>(db: IDBDatabase, mode: IDBTransactionMode, action: (stor
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE, mode);
     const request = action(transaction.objectStore(STORE));
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Falha ao acessar os salvamentos."));
+    let result: T;
+    let requestFailed = false;
+    request.onsuccess = () => { result = request.result; };
+    request.onerror = () => {
+      requestFailed = true;
+      reject(request.error ?? new Error("Falha ao acessar os salvamentos."));
+    };
+    transaction.oncomplete = () => {
+      if (!requestFailed) resolve(result);
+    };
+    transaction.onerror = () => reject(transaction.error ?? new Error("Falha na transação de salvamento."));
     transaction.onabort = () => reject(transaction.error ?? new Error("A operação de salvamento foi cancelada."));
   });
 }
 
 async function writeRecord(id: string, state: GameState, name: string): Promise<void> {
+  // Nunca persistir um estado que não passaria pela mesma validação usada ao carregar.
+  const safeState = migrateStoredRecord(state);
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(STORE, "readwrite");
       transaction.objectStore(STORE).put({
-        ...structuredClone(state),
+        ...structuredClone(safeState),
         storageVersion: 1,
-        saveMeta: { id, name: name.trim(), savedAt: new Date().toISOString(), campaignName: state.campaignName },
+        saveMeta: { id, name: name.trim(), savedAt: new Date().toISOString(), campaignName: safeState.campaignName },
       }, slotKey(id));
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Falha ao gravar a campanha."));
@@ -151,12 +162,14 @@ async function writeRecord(id: string, state: GameState, name: string): Promise<
 }
 
 export async function saveGame(state: GameState): Promise<void> {
+  // A validação acontece antes da transação: um estado inválido não substitui o autosave anterior.
+  const safeState = migrateStoredRecord(state);
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(STORE, "readwrite");
       transaction.objectStore(STORE).put(
-        { ...structuredClone(state), storageVersion: 1, lastSavedAt: new Date().toISOString() }, AUTO_KEY,
+        { ...structuredClone(safeState), storageVersion: 1, lastSavedAt: new Date().toISOString() }, AUTO_KEY,
       );
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Falha ao gravar a campanha."));
@@ -181,18 +194,26 @@ export async function listSaveSlots(): Promise<SaveSlot[]> {
   try {
     const transaction = db.transaction(STORE, "readonly");
     const store = transaction.objectStore(STORE);
-    [keys, records] = await Promise.all([
-      new Promise<IDBValidKey[]>((resolve, reject) => {
-        const request = store.getAllKeys();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error ?? new Error("Falha ao listar chaves de salvamento."));
-      }),
-      new Promise<unknown[]>((resolve, reject) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error ?? new Error("Falha ao listar salvamentos."));
-      }),
-    ]);
+    [keys, records] = await new Promise<[IDBValidKey[], unknown[]]>((resolve, reject) => {
+      const keysRequest = store.getAllKeys();
+      const recordsRequest = store.getAll();
+      let resultKeys: IDBValidKey[] | undefined;
+      let resultRecords: unknown[] | undefined;
+      let failed = false;
+      const finish = () => {
+        if (!failed && resultKeys && resultRecords) {
+          // Ambos os resultados são capturados na mesma transação de leitura.
+          resolve([resultKeys, resultRecords]);
+        }
+      };
+      keysRequest.onsuccess = () => { resultKeys = keysRequest.result; finish(); };
+      recordsRequest.onsuccess = () => { resultRecords = recordsRequest.result; finish(); };
+      keysRequest.onerror = () => { failed = true; reject(keysRequest.error ?? new Error("Falha ao listar chaves de salvamento.")); };
+      recordsRequest.onerror = () => { failed = true; reject(recordsRequest.error ?? new Error("Falha ao listar salvamentos.")); };
+      transaction.oncomplete = finish;
+      transaction.onerror = () => reject(transaction.error ?? new Error("Falha na transação ao listar salvamentos."));
+      transaction.onabort = () => reject(transaction.error ?? new Error("A listagem de salvamentos foi cancelada."));
+    });
   } finally { db.close(); }
   const slots: SaveSlot[] = [];
   for (let index = 0; index < records.length; index += 1) {
