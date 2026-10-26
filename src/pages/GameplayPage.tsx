@@ -67,7 +67,7 @@ export default function GameplayPage({
         <span className="status-icon">i</span>{notice} {timeSpeed > 0 && <span className="time-running">· Tempo: {timeSpeed}×</span>}
       </section>
 
-      <section className="dashboard-grid">
+      <section className={"dashboard-grid" + (infoPanel ? " has-info-panel" : " map-focus-mode")}>
         <div className="panel map-panel">
           <div className="panel-header">
             <div><span className="eyebrow">VISÃO TERRITORIAL</span><h2>Mapa político</h2></div>
