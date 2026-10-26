@@ -46,6 +46,10 @@ export function migrateStoredRecord(value: unknown): GameState {
   // Registros antigos guardavam o estado diretamente; os metadados locais não fazem parte do estado do jogo.
   const stateValue = record.state && record.storageFormat === "age-of-history-save" ? record.state : value;
   const state = stateValue as Partial<GameState>;
+  const storageVersion = record.storageVersion;
+  if (storageVersion !== undefined && storageVersion !== 1) {
+    throw new Error("Versão do registro local não suportada. O salvamento original foi preservado.");
+  }
   if (state.schemaVersion !== 1) {
     throw new Error("Este salvamento usa uma versão de esquema não suportada. O registro original foi preservado.");
   }
@@ -268,6 +272,25 @@ export async function renameSaveSlot(id: string, name: string): Promise<void> {
       transaction.onerror = () => reject(transaction.error ?? new Error("Falha ao renomear salvamento."));
     });
   } finally { db.close(); }
+}
+
+export async function exportRawSaveRecord(id: string): Promise<string> {
+  const db = await openDb();
+  let value: unknown;
+  try { value = await readRequest(db, "readonly", store => store.get(slotKey(id))); }
+  finally { db.close(); }
+  if (value === undefined) throw new Error("Salvamento não encontrado.");
+  try {
+    return JSON.stringify({
+      format: "age-of-history-raw-save-recovery",
+      exportedAt: new Date().toISOString(),
+      recordId: id,
+      warning: "Registro bruto para diagnóstico/recuperação. Não é uma campanha importável diretamente.",
+      record: value,
+    }, null, 2);
+  } catch {
+    throw new Error("Não foi possível serializar o registro bruto para exportação.");
+  }
 }
 
 export async function deleteSaveSlot(id: string): Promise<void> {
