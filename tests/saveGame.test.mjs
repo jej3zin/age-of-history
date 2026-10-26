@@ -73,3 +73,11 @@ test("rejeita versão de esquema não suportada sem modificar o registro recebid
   assert.throws(() => migrateStoredRecord(legacy), /registro original foi preservado/);
   assert.deepEqual(legacy, before);
 });
+
+
+test("rejeita versão local desconhecida sem alterar o registro original", () => {
+  const legacy = campaign({ storageVersion: 42 });
+  const before = structuredClone(legacy);
+  assert.throws(() => migrateStoredRecord(legacy), /Versão do registro local não suportada/);
+  assert.deepEqual(legacy, before);
+});
