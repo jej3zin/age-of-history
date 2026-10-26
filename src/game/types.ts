@@ -6,6 +6,8 @@ export interface Country {
 export interface Territory {
   id: string; name: string; countryId: string; points: [number, number][];
   center: [number, number]; population: number; production: number; terrain: string;
+  regionName?: string;
+  cities?: { id: string; name: string; population: number }[];
 }
 export interface GameEvent { id: string; day: number; title: string; description: string; }
 export interface GameState {
