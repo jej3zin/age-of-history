@@ -36,6 +36,10 @@ Este documento registra a arquitetura atual do protótipo e as fronteiras que de
 - Adicionar validação de estado na fronteira de persistência e importação.
 - Só mover cálculos para Web Workers quando medições demonstrarem necessidade e o contrato de mensagens estiver definido.
 
+## Compatibilidade de salvamentos
+
+A política e as versões atuais estão documentadas em [`docs/SAVE_COMPATIBILITY.md`](./SAVE_COMPATIBILITY.md). Não há migração real entre versões diferentes de `GameState` ainda.
+
 ## Limitações conhecidas
 
 - O importador GeoJSON ainda ignora buracos internos de polígonos.
