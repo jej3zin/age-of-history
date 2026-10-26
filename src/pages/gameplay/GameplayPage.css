@@ -78,3 +78,5 @@ body:has(.gameplay-shell) { overflow:hidden; }
 .dashboard-grid.map-focus-mode .map-panel { width:100%; }
 .dashboard-grid.has-info-panel { grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr); }
 .country-legend-button { display:flex; align-items:center; gap:8px; }
+
+.decision-prompt{margin:0 0 18px;border-color:#e6a15f;background:linear-gradient(120deg,#2a2118,#151d25);box-shadow:0 0 0 1px #e6a15f22}.decision-prompt h2{font:600 20px 'Space Grotesk',sans-serif;margin:9px 0}.decision-prompt p{color:#c3cbd2;font-size:12px;line-height:1.7;margin:0 0 16px}.decision-prompt .eyebrow{color:#f2b56f}

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { advanceOneDay } from "../src/game/simulation.ts";
+import { advanceOneDay, queueGameEvent, resolvePendingDecision } from "../src/game/simulation.ts";
 
 function state(overrides = {}) {
   return {
@@ -81,4 +81,33 @@ test("runs a long campaign deterministically without invalid numeric state", () 
   assert.equal(first.events.length, 12);
   assert.ok(first.countries.every(country => Number.isFinite(country.treasury) && Number.isFinite(country.population) && Number.isFinite(country.production) && country.stability >= 0 && country.stability <= 100));
   assert.equal(initial.day, 0, "simulation must not mutate its initial state");
+});
+
+
+test("processes due events deterministically by priority and pauses for decisions", () => {
+  let initial = state();
+  initial = queueGameEvent(initial, { id: "decision", dueDay: 1, priority: 1, title: "Decisão", description: "Escolha uma opção.", requiresDecision: true });
+  initial = queueGameEvent(initial, { id: "after", dueDay: 1, priority: 0, title: "Depois", description: "Aguardar decisão anterior.", requiresDecision: false });
+  initial = queueGameEvent(initial, { id: "notice", dueDay: 1, priority: 5, title: "Aviso", description: "Evento automático.", requiresDecision: false });
+  const next = advanceOneDay(initial);
+  assert.equal(next.day, 1);
+  assert.equal(next.events[0].id, "notice");
+  assert.equal(next.pendingDecision?.id, "decision");
+  assert.deepEqual(next.eventQueue.map(event => event.id), ["after"]);
+  assert.equal(advanceOneDay(next), next, "time must not advance while a decision is pending");
+  const resolved = resolvePendingDecision(next);
+  assert.equal(resolved.pendingDecision, undefined);
+  assert.equal(resolved.events[0].id, "decision");
+  assert.equal(resolved.day, 1);
+  const resumed = advanceOneDay(resolved);
+  assert.equal(resumed.day, 2);
+  assert.equal(resumed.events[0].id, "after", "overdue queued events should run after the decision is resolved");
+});
+
+test("rejects invalid or duplicate scheduled events", () => {
+  const initial = state();
+  const event = { id: "event-1", dueDay: 1, priority: 0, title: "Evento", description: "Teste", requiresDecision: false };
+  const queued = queueGameEvent(initial, event);
+  assert.throws(() => queueGameEvent(queued, event), /identificador/);
+  assert.throws(() => queueGameEvent(initial, { ...event, dueDay: -1 }), /dia do evento/);
 });

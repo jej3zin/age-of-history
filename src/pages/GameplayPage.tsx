@@ -30,12 +30,13 @@ type Props = {
   onDeleteSlot: (id: string) => void;
   onExportRawSave: (id: string) => void;
   onImportRawRecovery: (file: File) => void;
+  onResolveDecision: () => void;
 };
 
 export default function GameplayPage({
   state, notice, busy, timeSpeed, onSetTimeSpeed, onHome, onNewCampaign,
   onLoad, onSave, onNextDay, onSelectTerritory, onImportGeoJSON, onExportCampaign, onImportCampaign,
-  saveSlots, onRefreshSaveSlots, onSaveSlot, onLoadSlot, onRenameSlot, onDeleteSlot, onExportRawSave, onImportRawRecovery,
+  saveSlots, onRefreshSaveSlots, onSaveSlot, onLoadSlot, onRenameSlot, onDeleteSlot, onExportRawSave, onImportRawRecovery, onResolveDecision,
 }: Props) {
   const [infoPanel, setInfoPanel] = useState<"territory" | "country" | null>(null);
   const [inspectedCountryId, setInspectedCountryId] = useState<string | null>(null);
@@ -125,6 +126,8 @@ export default function GameplayPage({
           )}
         </section>
       )}
+
+      {state.pendingDecision && <section className="panel decision-prompt" role="alertdialog" aria-labelledby="pending-decision-title" aria-describedby="pending-decision-description"><span className="eyebrow">DECISÃO NECESSÁRIA · TEMPO PAUSADO</span><h2 id="pending-decision-title">{state.pendingDecision.title}</h2><p id="pending-decision-description">{state.pendingDecision.description}</p><button type="button" className="button primary" onClick={onResolveDecision}>Confirmar e continuar</button></section>}
 
       <section className="status-strip" aria-live="polite">
         <span className="status-icon">i</span>{notice} {timeSpeed > 0 && <span className="time-running">· Tempo: {timeSpeed}×</span>}

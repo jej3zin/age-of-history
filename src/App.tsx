@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useGameClock } from "./hooks/useGameClock";
 import { createInitialState } from "./data/scenario";
-import { advanceOneDay } from "./game/simulation";
+import { advanceOneDay, resolvePendingDecision } from "./game/simulation";
 import type { GameState } from "./game/types";
 import { loadGame, saveGame, parseCampaignFile, serializeCampaign, listSaveSlots, saveToSlot, loadSaveSlot, renameSaveSlot, deleteSaveSlot, exportRawSaveRecord, parseRawSaveRecoveryFile } from "./persistence/saveGame";
 import type { SaveSlot } from "./persistence/saveGame";
@@ -41,6 +41,7 @@ export default function App() {
 
   const tickGameClock = useCallback(() => setState(current => advanceOneDay(current)), []);
   useGameClock(page === "gameplay", timeSpeed, busy, tickGameClock);
+  useEffect(() => { if (state.pendingDecision) setTimeSpeed(0); }, [state.pendingDecision]);
 
   const navigate = useCallback((next: Page) => {
     const path = next === "gameplay" ? "/gameplay" : next === "setup" ? "/setup" : next === "home" ? "/home" : next === "about" ? "/about" : next === "scenario" ? "/scenario/ww1" : next === "play" ? "/play/ww1" : "/";
@@ -132,6 +133,8 @@ export default function App() {
     setNotice(`Campanha "${nextState.campaignName}" criada com ${selectedCountry.name}. A simulação começa pausada.`);
     navigate("gameplay");
   };
+
+  const resolveDecision = () => { setState(current => resolvePendingDecision(current)); setNotice("Decisão confirmada. O tempo continua pausado até você retomá-lo."); };
 
   const nextDay = () => {
     setState(s => advanceOneDay(s));
@@ -256,5 +259,5 @@ export default function App() {
   if (page === "start") return <PortalPage view="start" onNavigate={path => { window.history.pushState({}, "", path); setPage(path === "/home" ? "home" : "start"); }} onStart={() => navigate("home")} onPlay={() => navigate("setup")} />;
   if (page === "home" || page === "about" || page === "scenario" || page === "play" || page === "settings") return <PortalPage view={page} onNavigate={path => { window.history.pushState({}, "", path); setPage(path === "/home" ? "home" : path === "/about" ? "about" : path.startsWith("/settings/") ? "settings" : path.startsWith("/play/") ? "play" : "scenario"); }} onStart={() => navigate("home")} onPlay={() => navigate("setup")} onContinue={() => void load()} onStartConfigured={startConfiguredCampaign} />;
   if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
-  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} onExportRawSave={id => void exportRawSave(id)} onImportRawRecovery={file => void importRawRecovery(file)} />;
+  return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} onExportCampaign={exportCampaign} onImportCampaign={file => void importCampaign(file)} saveSlots={saveSlots} onRefreshSaveSlots={refreshSaveSlots} onSaveSlot={name => void createSaveSlot(name)} onLoadSlot={id => void loadSlot(id)} onRenameSlot={(id, name) => void renameSlot(id, name)} onDeleteSlot={id => void deleteSlot(id)} onExportRawSave={id => void exportRawSave(id)} onImportRawRecovery={file => void importRawRecovery(file)} onResolveDecision={resolveDecision} />;
 }

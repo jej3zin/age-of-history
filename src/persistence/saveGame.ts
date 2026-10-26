@@ -107,6 +107,15 @@ export function migrateStoredRecord(value: unknown): GameState {
       event.day >= 0 && typeof event.title === "string" && typeof event.description === "string")
   ) throw new Error("Campanha inválida ou incompatível. Verifique a versão, a data, os países, os territórios e a seleção.");
 
+  if (state.eventQueue !== undefined && (!Array.isArray(state.eventQueue) || !state.eventQueue.every(event =>
+    event && typeof event.id === "string" && event.id.trim() && Number.isInteger(event.dueDay) && event.dueDay >= 0 &&
+    Number.isFinite(event.priority) && typeof event.title === "string" && event.title.trim() &&
+    typeof event.description === "string" && typeof event.requiresDecision === "boolean"
+  ))) throw new Error("Fila de eventos inválida no salvamento.");
+  if (state.pendingDecision !== undefined && (!state.pendingDecision || typeof state.pendingDecision.id !== "string" ||
+    !Number.isInteger(state.pendingDecision.day) || typeof state.pendingDecision.title !== "string" || typeof state.pendingDecision.description !== "string")) {
+    throw new Error("Decisão pendente inválida no salvamento.");
+  }
   const normalized = structuredClone(state) as GameState;
   normalized.scenarioId = typeof normalized.scenarioId === "string" && normalized.scenarioId.trim() ? normalized.scenarioId : "legacy-unknown";
   normalized.mode = normalized.mode ?? "history";

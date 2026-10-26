@@ -15,6 +15,7 @@ export interface Territory {
   cities?: { id: string; name: string; population: number }[];
 }
 export interface GameEvent { id: string; day: number; title: string; description: string; }
+export interface ScheduledGameEvent { id: string; dueDay: number; priority: number; title: string; description: string; requiresDecision: boolean; }
 export interface CitizenProfile { name: string; profession: "Estudante" | "Trabalha"; family: string; money: number; dailyIncome: number; dailyExpense: number; }
 export interface GameState {
   schemaVersion: 1; campaignName: string; date: string; day: number;
@@ -22,6 +23,7 @@ export interface GameState {
   difficulty?: "very-easy" | "easy" | "normal" | "hard" | "very-hard"; aiProfile?: string;
   selectedCountryId: string; selectedTerritoryId: string;
   countries: Country[]; territories: Territory[]; events: GameEvent[];
+  eventQueue?: ScheduledGameEvent[]; pendingDecision?: GameEvent;
   citizenProfile?: CitizenProfile;
   lastSavedAt?: string;
 }
