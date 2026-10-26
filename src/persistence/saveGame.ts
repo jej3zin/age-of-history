@@ -301,9 +301,10 @@ export async function saveToSlot(state: GameState, name: string): Promise<SaveSl
 }
 
 export async function loadSaveSlot(id: string): Promise<GameState> {
+  const key = slotKey(id);
   const db = await openDb();
   let value: unknown;
-  try { value = await readRequest(db, "readonly", store => store.get(slotKey(id))); }
+  try { value = await readRequest(db, "readonly", store => store.get(key));
   finally { db.close(); }
   return migrateStoredRecord(value);
 }
@@ -312,12 +313,13 @@ export async function renameSaveSlot(id: string, name: string): Promise<void> {
   if (id === AUTO_KEY) throw new Error("O salvamento automático não pode ser renomeado.");
   const cleanName = name.trim();
   if (!cleanName || cleanName.length > 60) throw new Error("O nome deve ter entre 1 e 60 caracteres.");
+  const key = slotKey(id);
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(STORE, "readwrite");
       const store = transaction.objectStore(STORE);
-      const request = store.get(slotKey(id));
+      const request = store.get(key);
       request.onsuccess = () => {
         if (!request.result || typeof request.result !== "object") { transaction.abort(); reject(new Error("Salvamento não encontrado.")); return; }
         const record = request.result as Record<string, unknown>;
@@ -333,9 +335,10 @@ export async function renameSaveSlot(id: string, name: string): Promise<void> {
 }
 
 export async function exportRawSaveRecord(id: string): Promise<string> {
+  const key = slotKey(id);
   const db = await openDb();
   let value: unknown;
-  try { value = await readRequest(db, "readonly", store => store.get(slotKey(id))); }
+  try { value = await readRequest(db, "readonly", store => store.get(key));
   finally { db.close(); }
   if (value === undefined) throw new Error("Salvamento não encontrado.");
   try {
@@ -378,8 +381,9 @@ export function parseRawSaveRecoveryFile(text: string): GameState {
 
 export async function deleteSaveSlot(id: string): Promise<void> {
   if (id === AUTO_KEY) throw new Error("O salvamento automático não pode ser excluído.");
+  const key = slotKey(id);
   const db = await openDb();
-  try { await readRequest(db, "readwrite", store => store.delete(slotKey(id))); }
+  try { await readRequest(db, "readwrite", store => store.delete(key)); }
   finally { db.close(); }
 }
 
