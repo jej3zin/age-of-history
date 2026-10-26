@@ -5,11 +5,14 @@ import type { GameState } from "./game/types";
 import { loadGame, saveGame } from "./persistence/saveGame";
 import HomePage from "./pages/HomePage";
 import GameplayPage from "./pages/GameplayPage";
+import CampaignSetupPage from "./pages/CampaignSetupPage";
 import { importTerritoriesFromGeoJSON } from "./map/geoJson";
 
-type Page = "home" | "gameplay";
+type Page = "home" | "setup" | "gameplay";
+type CampaignSetup = { mode: "history" | "citizen"; countryId: string; customNation: boolean; customName: string; customColor: string; personName: string; profession: "Estudante" | "Trabalha"; family: string };
 function currentPage(): Page {
-  return window.location.pathname.replace(/\/+$/, "") === "/gameplay" ? "gameplay" : "home";
+  const path = window.location.pathname.replace(/\/+$/, "");
+  return path === "/gameplay" ? "gameplay" : path === "/setup" ? "setup" : "home";
 }
 
 export default function App() {
@@ -25,7 +28,6 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  // A velocidade altera apenas a cadência dos ticks; cada tick continua sendo exatamente um dia.
   useEffect(() => {
     if (page !== "gameplay" || timeSpeed === 0 || busy) return;
     const intervalMs = 2000 / timeSpeed;
@@ -34,10 +36,10 @@ export default function App() {
   }, [page, timeSpeed, busy]);
 
   const navigate = useCallback((next: Page) => {
-    const path = next === "gameplay" ? "/gameplay" : "/";
+    const path = next === "gameplay" ? "/gameplay" : next === "setup" ? "/setup" : "/";
     if (window.location.pathname !== path) window.history.pushState({}, "", path);
     setPage(next);
-    if (next === "home") setTimeSpeed(0);
+    if (next !== "gameplay") setTimeSpeed(0);
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
@@ -59,12 +61,55 @@ export default function App() {
     if (!territory) return;
     setState(s => ({ ...s, selectedTerritoryId: id, selectedCountryId: territory.countryId }));
   };
+
   const startCampaign = () => {
     setState(createInitialState());
     setTimeSpeed(0);
-    setNotice("Nova campanha iniciada. Selecione territórios no mapa e avance o tempo.");
+    navigate("setup");
+  };
+
+  const confirmCampaign = (setup: CampaignSetup) => {
+    const initial = createInitialState();
+    const countries = initial.countries.map(country => {
+      if (country.id !== setup.countryId) return { ...country, isPlayer: false };
+      const color = setup.customNation ? Number.parseInt(setup.customColor.replace("#", ""), 16) : country.color;
+      const professionIncome = setup.mode === "citizen" && setup.profession === "Trabalha" ? 150 : 0;
+      const professionExpense = setup.mode === "citizen" && setup.profession === "Estudante" ? 100 : 0;
+      const familyExpense = setup.mode === "citizen" && setup.family ? 75 : 0;
+      return {
+        ...country,
+        name: setup.customNation ? setup.customName : country.name,
+        color,
+        isPlayer: true,
+        dailyIncome: country.dailyIncome + professionIncome,
+        dailyExpense: country.dailyExpense + professionExpense + familyExpense,
+      };
+    });
+    const playableCountry = countries.find(country => country.id === setup.countryId) ?? countries[0];
+    const firstTerritory = initial.territories.find(territory => territory.countryId === setup.countryId) ?? initial.territories[0];
+    const campaignName = setup.mode === "citizen" ? `${setup.personName} — Modo Cidadão` : `${playableCountry.name} — Nova campanha`;
+    const nextState: GameState = {
+      ...initial,
+      campaignName,
+      countries,
+      selectedCountryId: setup.countryId,
+      selectedTerritoryId: firstTerritory.id,
+      events: [{
+        id: "start",
+        day: 0,
+        title: setup.mode === "citizen" ? `A vida de ${setup.personName} começa` : "Uma nova campanha",
+        description: setup.mode === "citizen"
+          ? `${setup.personName} começa sua jornada em ${playableCountry.name}. Profissão: ${setup.profession}. ${setup.family ? "Família: " + setup.family + "." : "Sem família registrada."}`
+          : `${playableCountry.name} inicia uma nova campanha. Você está no comando desta nação.`,
+      }],
+      ...(setup.mode === "citizen" ? { citizenProfile: { name: setup.personName, profession: setup.profession, family: setup.family } } : {}),
+    };
+    setState(nextState);
+    setTimeSpeed(0);
+    setNotice(setup.mode === "citizen" ? "Modo Cidadão iniciado. Profissão e família influenciam o orçamento diário." : "Nova campanha iniciada. Você controla " + playableCountry.name + ".");
     navigate("gameplay");
   };
+
   const nextDay = () => {
     setState(s => advanceOneDay(s));
     setNotice("A simulação avançou um dia. Orçamento e indicadores foram atualizados.");
@@ -72,7 +117,7 @@ export default function App() {
   const newCampaign = () => {
     setState(createInitialState());
     setTimeSpeed(0);
-    setNotice("Nova campanha iniciada. O salvamento anterior permanece disponível até ser sobrescrito.");
+    navigate("setup");
   };
   async function save() {
     setBusy(true);
@@ -96,5 +141,6 @@ export default function App() {
   }
 
   if (page === "home") return <HomePage onStart={startCampaign} onContinue={() => void load()} />;
+  if (page === "setup") return <CampaignSetupPage state={createInitialState()} onCancel={() => navigate("home")} onConfirm={confirmCampaign} />;
   return <GameplayPage state={state} notice={notice} busy={busy} timeSpeed={timeSpeed} onSetTimeSpeed={setTimeSpeed} onHome={() => navigate("home")} onNewCampaign={newCampaign} onLoad={() => void load()} onSave={() => void save()} onNextDay={nextDay} onSelectTerritory={selectTerritory} onImportGeoJSON={file => void importGeoJSON(file)} />;
 }
