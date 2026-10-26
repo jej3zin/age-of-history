@@ -63,29 +63,61 @@ export async function loadGame(): Promise<GameState | null> {
   if (!value || typeof value !== "object") return null;
 
   const state = value as Partial<GameState>;
+  const validDate = typeof state.date === "string" &&
+    /^\\d{4}-\\d{2}-\\d{2}$/.test(state.date) &&
+    !Number.isNaN(Date.parse(state.date + "T12:00:00Z")) &&
+    new Date(state.date + "T12:00:00Z").toISOString().slice(0, 10) === state.date;
+  const validPosition = (position: unknown): boolean =>
+    Array.isArray(position) && position.length >= 2 &&
+    Number.isFinite(position[0]) && Number.isFinite(position[1]);
+  const validRing = (ring: unknown): boolean =>
+    Array.isArray(ring) && ring.length >= 4 && ring.every(validPosition);
+
   if (
     state.schemaVersion !== 1 ||
-    typeof state.date !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(state.date) ||
+    !validDate ||
     !Number.isInteger(state.day) ||
     (state.day ?? -1) < 0 ||
-    !Array.isArray(state.countries) ||
-    !Array.isArray(state.territories) ||
+    typeof state.campaignName !== "string" ||
+    !Array.isArray(state.countries) || state.countries.length === 0 ||
+    !Array.isArray(state.territories) || state.territories.length === 0 ||
     !Array.isArray(state.events) ||
+    typeof state.selectedCountryId !== "string" ||
     typeof state.selectedTerritoryId !== "string" ||
     !state.countries.every((country) =>
-      country && typeof country.id === "string" &&
-      typeof country.name === "string" &&
+      country && typeof country.id === "string" && country.id.length > 0 &&
+      typeof country.name === "string" && country.name.trim().length > 0 &&
+      Number.isFinite(country.color) &&
       Number.isFinite(country.treasury) &&
-      Number.isFinite(country.population)
+      Number.isFinite(country.dailyIncome) &&
+      Number.isFinite(country.dailyExpense) &&
+      Number.isFinite(country.population) && country.population >= 0 &&
+      Number.isFinite(country.production) && country.production >= 0 &&
+      Number.isFinite(country.stability) && country.stability >= 0 && country.stability <= 100 &&
+      typeof country.isPlayer === "boolean"
     ) ||
+    new Set(state.countries.map(country => country.id)).size !== state.countries.length ||
     !state.territories.every((territory) =>
-      territory && typeof territory.id === "string" &&
+      territory && typeof territory.id === "string" && territory.id.length > 0 &&
+      typeof territory.name === "string" && territory.name.trim().length > 0 &&
       typeof territory.countryId === "string" &&
-      Array.isArray(territory.points)
+      Number.isFinite(territory.population) && territory.population >= 0 &&
+      Number.isFinite(territory.production) && territory.production >= 0 &&
+      Array.isArray(territory.points) && validRing(territory.points) &&
+      validPosition(territory.center) &&
+      (territory.polygons === undefined ||
+        (Array.isArray(territory.polygons) && territory.polygons.length > 0 && territory.polygons.every(validRing)))
+    ) ||
+    new Set(state.territories.map(territory => territory.id)).size !== state.territories.length ||
+    !state.territories.every(territory => state.countries!.some(country => country.id === territory.countryId)) ||
+    !state.territories.some(territory => territory.id === state.selectedTerritoryId && territory.countryId === state.selectedCountryId) ||
+    !state.events.every(event =>
+      event && typeof event.id === "string" &&
+      Number.isInteger(event.day) && event.day >= 0 &&
+      typeof event.title === "string" && typeof event.description === "string"
     )
   ) {
-    throw new Error("Salvamento inválido ou incompatível. Inicie uma nova campanha.");
+    throw new Error("Salvamento inválido ou incompatível: confira países, territórios, seleção e data da campanha. Inicie uma nova campanha se o problema persistir.");
   }
 
   if (state.citizenProfile) {
