@@ -28,12 +28,13 @@ type Props = {
   onRenameSlot: (id: string, name: string) => void;
   onDeleteSlot: (id: string) => void;
   onExportRawSave: (id: string) => void;
+  onImportRawRecovery: (file: File) => void;
 };
 
 export default function GameplayPage({
   state, notice, busy, timeSpeed, onSetTimeSpeed, onHome, onNewCampaign,
   onLoad, onSave, onNextDay, onSelectTerritory, onImportGeoJSON, onExportCampaign, onImportCampaign,
-  saveSlots, onRefreshSaveSlots, onSaveSlot, onLoadSlot, onRenameSlot, onDeleteSlot, onExportRawSave,
+  saveSlots, onRefreshSaveSlots, onSaveSlot, onLoadSlot, onRenameSlot, onDeleteSlot, onExportRawSave, onImportRawRecovery,
 }: Props) {
   const [infoPanel, setInfoPanel] = useState<"territory" | "country" | null>(null);
   const [inspectedCountryId, setInspectedCountryId] = useState<string | null>(null);
@@ -97,7 +98,16 @@ export default function GameplayPage({
           <form className="save-slot-create" onSubmit={(event) => { event.preventDefault(); if (saveName.trim()) { onSaveSlot(saveName); setSaveName(""); } }}>
             <input aria-label="Nome do novo salvamento" value={saveName} maxLength={60} onChange={event => setSaveName(event.target.value)} placeholder={state.campaignName + " — Dia " + (state.day + 1)} />
             <button className="button primary" disabled={busy || !saveName.trim()}>Criar salvamento</button>
+            <label className="button secondary geojson-import recovery-import">
+              Importar arquivo de recuperação
+              <input type="file" accept=".json,application/json" disabled={busy} onChange={event => {
+                const file = event.currentTarget.files?.[0];
+                if (file) onImportRawRecovery(file);
+                event.currentTarget.value = "";
+              }} />
+            </label>
           </form>
+          <p className="save-recovery-help">Use esta opção somente com um arquivo “salvamento-bruto” exportado pelo jogo. A recuperação valida os dados e carrega a campanha em memória; ela não altera o slot original. Confira a campanha e salve em um novo slot para manter uma cópia recuperada.</p>
           {saveSlots.length === 0 ? <p>Nenhum salvamento listado ainda. Crie um slot para guardar uma versão independente da campanha.</p> : (
             <div className="save-slot-list">
               {saveSlots.map(slot => (
