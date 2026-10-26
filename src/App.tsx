@@ -73,16 +73,11 @@ export default function App() {
     const countries = initial.countries.map(country => {
       if (country.id !== setup.countryId) return { ...country, isPlayer: false };
       const color = setup.customNation ? Number.parseInt(setup.customColor.replace("#", ""), 16) : country.color;
-      const professionIncome = setup.mode === "citizen" && setup.profession === "Trabalha" ? 150 : 0;
-      const professionExpense = setup.mode === "citizen" && setup.profession === "Estudante" ? 100 : 0;
-      const familyExpense = setup.mode === "citizen" && setup.family ? 75 : 0;
       return {
         ...country,
         name: setup.customNation ? setup.customName : country.name,
         color,
         isPlayer: true,
-        dailyIncome: country.dailyIncome + professionIncome,
-        dailyExpense: country.dailyExpense + professionExpense + familyExpense,
       };
     });
     const playableCountry = countries.find(country => country.id === setup.countryId) ?? countries[0];
@@ -102,7 +97,7 @@ export default function App() {
           ? `${setup.personName} começa sua jornada em ${playableCountry.name}. Profissão: ${setup.profession}. ${setup.family ? "Família: " + setup.family + "." : "Sem família registrada."}`
           : `${playableCountry.name} inicia uma nova campanha. Você está no comando desta nação.`,
       }],
-      ...(setup.mode === "citizen" ? { citizenProfile: { name: setup.personName, profession: setup.profession, family: setup.family } } : {}),
+      ...(setup.mode === "citizen" ? { citizenProfile: { name: setup.personName, profession: setup.profession, family: setup.family, money: 500, dailyIncome: setup.profession === "Trabalha" ? 150 : 0, dailyExpense: (setup.profession === "Estudante" ? 100 : 0) + (setup.family ? 75 : 0) } } : {}),
     };
     setState(nextState);
     setTimeSpeed(0);
