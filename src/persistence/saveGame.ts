@@ -15,6 +15,8 @@ export type SaveSlot = {
   day: number;
   savedAt: string;
   isAuto: boolean;
+  isCorrupt?: boolean;
+  recoveryMessage?: string;
 };
 
 function openDb(): Promise<IDBDatabase> {
@@ -38,9 +40,15 @@ const validPosition = (value: unknown): boolean =>
 const validRing = (value: unknown): boolean =>
   Array.isArray(value) && value.length >= 4 && value.every(validPosition);
 
-function normalizeAndValidate(value: unknown): GameState {
-  if (!value || typeof value !== "object") throw new Error("O arquivo não contém uma campanha válida.");
-  const state = value as Partial<GameState>;
+export function migrateStoredRecord(value: unknown): GameState {
+  if (!value || typeof value !== "object") throw new Error("O salvamento não contém uma campanha válida.");
+  const record = value as Record<string, unknown>;
+  // Registros antigos guardavam o estado diretamente; os metadados locais não fazem parte do estado do jogo.
+  const stateValue = record.state && record.storageFormat === "age-of-history-save" ? record.state : value;
+  const state = stateValue as Partial<GameState>;
+  if (state.schemaVersion !== 1) {
+    throw new Error("Este salvamento usa uma versão de esquema não suportada. O registro original foi preservado.");
+  }
   const validDate = typeof state.date === "string" &&
     /^\d{4}-\d{2}-\d{2}$/.test(state.date) &&
     !Number.isNaN(Date.parse(state.date + "T12:00:00Z")) &&
@@ -128,6 +136,7 @@ async function writeRecord(id: string, state: GameState, name: string): Promise<
       const transaction = db.transaction(STORE, "readwrite");
       transaction.objectStore(STORE).put({
         ...structuredClone(state),
+        storageVersion: 1,
         saveMeta: { id, name: name.trim(), savedAt: new Date().toISOString(), campaignName: state.campaignName },
       }, slotKey(id));
       transaction.oncomplete = () => resolve();
@@ -143,7 +152,7 @@ export async function saveGame(state: GameState): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(STORE, "readwrite");
       transaction.objectStore(STORE).put(
-        { ...structuredClone(state), lastSavedAt: new Date().toISOString() }, AUTO_KEY,
+        { ...structuredClone(state), storageVersion: 1, lastSavedAt: new Date().toISOString() }, AUTO_KEY,
       );
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Falha ao gravar a campanha."));
@@ -158,33 +167,59 @@ export async function loadGame(): Promise<GameState | null> {
   try { value = await readRequest(db, "readonly", store => store.get(AUTO_KEY)); }
   finally { db.close(); }
   if (!value || typeof value !== "object") return null;
-  return normalizeAndValidate(value);
+  return migrateStoredRecord(value);
 }
 
 export async function listSaveSlots(): Promise<SaveSlot[]> {
   const db = await openDb();
+  let keys: IDBValidKey[];
   let records: unknown[];
-  try { records = await readRequest(db, "readonly", store => store.getAll()) as unknown[]; }
-  finally { db.close(); }
+  try {
+    const transaction = db.transaction(STORE, "readonly");
+    const store = transaction.objectStore(STORE);
+    [keys, records] = await Promise.all([
+      new Promise<IDBValidKey[]>((resolve, reject) => {
+        const request = store.getAllKeys();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error("Falha ao listar chaves de salvamento."));
+      }),
+      new Promise<unknown[]>((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error("Falha ao listar salvamentos."));
+      }),
+    ]);
+  } finally { db.close(); }
   const slots: SaveSlot[] = [];
-  for (const record of records) {
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+    const key = String(keys[index] ?? "");
     if (!record || typeof record !== "object") continue;
     const item = record as Record<string, unknown>;
     const meta = item.saveMeta as Record<string, unknown> | undefined;
-    if (meta && typeof meta.id === "string" && typeof meta.name === "string" && typeof meta.savedAt === "string" &&
-        typeof item.campaignName === "string" && typeof item.date === "string" && Number.isInteger(item.day)) {
-      slots.push({
-        id: meta.id, name: meta.name, campaignName: item.campaignName,
-        date: item.date, day: item.day as number, savedAt: meta.savedAt, isAuto: false,
-      });
-    } else if (item.campaignName && item.date && Number.isInteger(item.day) &&
-        (typeof item.lastSavedAt === "string" || item === records[0])) {
-      slots.push({
-        id: AUTO_KEY, name: "Salvamento automático", campaignName: String(item.campaignName),
-        date: String(item.date), day: item.day as number,
-        savedAt: typeof item.lastSavedAt === "string" ? item.lastSavedAt : "Data não registrada", isAuto: true,
-      });
+    const isAuto = key === AUTO_KEY;
+    const id = isAuto ? AUTO_KEY : key;
+    const hasBasicMetadata = typeof item.campaignName === "string" && typeof item.date === "string" && Number.isInteger(item.day);
+    let isCorrupt = false;
+    let recoveryMessage: string | undefined;
+    try { migrateStoredRecord(record); }
+    catch (error) {
+      isCorrupt = true;
+      recoveryMessage = error instanceof Error ? error.message : "Não foi possível validar este registro.";
     }
+    // Mantém registros danificados visíveis para que o jogador saiba que existem; nunca os apaga nem os regrava automaticamente.
+    slots.push({
+      id,
+      name: isAuto ? "Salvamento automático" : (typeof meta?.name === "string" ? meta.name : (hasBasicMetadata ? String(item.campaignName) : "Salvamento não identificado")),
+      campaignName: hasBasicMetadata ? String(item.campaignName) : "Dados não identificados",
+      date: hasBasicMetadata ? String(item.date) : "—",
+      day: hasBasicMetadata ? item.day as number : 0,
+      savedAt: isAuto && typeof item.lastSavedAt === "string" ? item.lastSavedAt :
+        (typeof meta?.savedAt === "string" ? meta.savedAt : "Data não registrada"),
+      isAuto,
+      isCorrupt,
+      recoveryMessage,
+    });
   }
   return slots.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }
@@ -256,5 +291,5 @@ export function parseCampaignFile(text: string): GameState {
   const envelope = document as { format?: unknown; formatVersion?: unknown; state?: unknown };
   if (envelope.format !== EXPORT_FORMAT) throw new Error("Este arquivo não é uma exportação de campanha do Age of History.");
   if (envelope.formatVersion !== EXPORT_VERSION) throw new Error("Versão do arquivo não suportada por esta versão do jogo.");
-  return normalizeAndValidate(envelope.state);
+  return migrateStoredRecord(envelope.state);
 }
