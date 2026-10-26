@@ -235,5 +235,26 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
     redraw.current?.();
   }, [state]);
 
-  return <div className="map-canvas" ref={host} aria-label="Mapa político interativo. Use a roda do mouse para zoom e arraste para mover." />;
+  return <div
+    className="map-canvas"
+    ref={host}
+    tabIndex={0}
+    role="application"
+    aria-label="Mapa político interativo. Use as setas do teclado para percorrer territórios; use a roda do mouse para zoom e arraste para mover."
+    onKeyDown={event => {
+      const territories = current.current.territories;
+      if (!territories.length) return;
+      const keys = ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"];
+      if (keys.includes(event.key)) {
+        event.preventDefault();
+        const selectedIndex = territories.findIndex(item => item.id === current.current.selectedTerritoryId);
+        const direction = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex = (selectedIndex + direction + territories.length) % territories.length;
+        callback.current(territories[nextIndex].id);
+      } else if (event.key === "Enter" && current.current.selectedTerritoryId) {
+        event.preventDefault();
+        callback.current(current.current.selectedTerritoryId);
+      }
+    }}
+  />;
 }
