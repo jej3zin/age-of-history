@@ -165,3 +165,21 @@ test("rejects duplicate IDs across event history, queue and pending decision", (
   });
   assert.throws(() => migrateStoredRecord(duplicateDecision), /identificador único/);
 });
+
+
+test("campaign export validates state and excludes local persistence metadata", () => {
+  const source = {
+    ...campaign({ scenarioId: "modern-day" }),
+    lastSavedAt: "2026-10-26T10:00:00.000Z",
+    storageVersion: 1,
+    saveMeta: { id: "local-only" },
+  };
+  const parsed = JSON.parse(serializeCampaign(source));
+  assert.equal(parsed.state.scenarioId, "modern-day");
+  assert.equal("lastSavedAt" in parsed.state, false);
+  assert.equal("storageVersion" in parsed.state, false);
+  assert.equal("saveMeta" in parsed.state, false);
+  assert.equal("storageVersion" in source, true, "export must not mutate source");
+  assert.equal("saveMeta" in source, true);
+  assert.throws(() => serializeCampaign(campaign({ day: -1 })), /salvamento|campanha válida/i);
+});

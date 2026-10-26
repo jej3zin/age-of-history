@@ -382,9 +382,15 @@ export async function deleteSaveSlot(id: string): Promise<void> {
 }
 
 export function serializeCampaign(state: GameState): string {
-  const portableState = structuredClone(state);
+  // Validate before producing a portable artifact; invalid in-memory state must not become a recovery file.
+  const portableState = migrateStoredRecord(state) as GameState & {
+    lastSavedAt?: unknown;
+    storageVersion?: unknown;
+    saveMeta?: unknown;
+  };
   delete portableState.lastSavedAt;
-  delete (portableState as GameState & { saveMeta?: unknown }).saveMeta;
+  delete portableState.storageVersion;
+  delete portableState.saveMeta;
   return JSON.stringify({ format: EXPORT_FORMAT, formatVersion: EXPORT_VERSION, exportedAt: new Date().toISOString(), state: portableState }, null, 2);
 }
 
