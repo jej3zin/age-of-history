@@ -106,7 +106,10 @@ export async function loadGame(): Promise<GameState | null> {
       Array.isArray(territory.points) && validRing(territory.points) &&
       validPosition(territory.center) &&
       (territory.polygons === undefined ||
-        (Array.isArray(territory.polygons) && territory.polygons.length > 0 && territory.polygons.every(validRing)))
+        (Array.isArray(territory.polygons) && territory.polygons.length > 0 && territory.polygons.every(validRing))) &&
+      (territory.polygonHoles === undefined ||
+        (Array.isArray(territory.polygonHoles) && territory.polygonHoles.length === (territory.polygons?.length ?? 1) &&
+          territory.polygonHoles.every(holes => Array.isArray(holes) && holes.every(validRing))))
     ) ||
     new Set(state.territories.map(territory => territory.id)).size !== state.territories.length ||
     !state.territories.every(territory => state.countries!.some(country => country.id === territory.countryId)) ||
