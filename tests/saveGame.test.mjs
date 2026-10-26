@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { migrateStoredRecord, parseCampaignFile, serializeCampaign } from "../src/persistence/saveGame.ts";
+import { migrateStoredRecord, parseCampaignFile, parseRawSaveRecoveryFile, serializeCampaign } from "../src/persistence/saveGame.ts";
 
 function campaign(overrides = {}) {
   return {
@@ -80,4 +80,30 @@ test("rejeita versão local desconhecida sem alterar o registro original", () =>
   const before = structuredClone(legacy);
   assert.throws(() => migrateStoredRecord(legacy), /Versão do registro local não suportada/);
   assert.deepEqual(legacy, before);
+});
+
+test("recupera campanha válida de exportação bruta sem alterar o envelope original", () => {
+  const rawRecord = { ...campaign(), storageVersion: 1, saveMeta: { id: "save-test", name: "Teste" } };
+  const envelope = {
+    format: "age-of-history-raw-save-recovery",
+    exportedAt: "2026-01-01T00:00:00.000Z",
+    recordId: "save-test",
+    warning: "raw",
+    record: rawRecord,
+  };
+  const before = structuredClone(envelope);
+  const recovered = parseRawSaveRecoveryFile(JSON.stringify(envelope));
+  assert.equal(recovered.campaignName, "Campanha teste");
+  assert.equal(recovered.schemaVersion, 1);
+  assert.equal(recovered.saveMeta, undefined);
+  assert.deepEqual(envelope, before);
+});
+
+test("rejeita envelope de recuperação inválido ou campanha bruta corrompida", () => {
+  assert.throws(() => parseRawSaveRecoveryFile("{bad json"), /JSON válido/);
+  assert.throws(() => parseRawSaveRecoveryFile(JSON.stringify({ format: "outro", record: campaign() })), /não é uma exportação bruta/);
+  assert.throws(() => parseRawSaveRecoveryFile(JSON.stringify({
+    format: "age-of-history-raw-save-recovery",
+    record: { ...campaign(), schemaVersion: 77, storageVersion: 1 },
+  })), /esquema não suportada/);
 });
