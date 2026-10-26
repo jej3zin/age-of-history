@@ -13,7 +13,7 @@ export interface Territory {
   cities?: { id: string; name: string; population: number }[];
 }
 export interface GameEvent { id: string; day: number; title: string; description: string; }
-export interface CitizenProfile { name: string; profession: "Estudante" | "Trabalha"; family: string; }
+export interface CitizenProfile { name: string; profession: "Estudante" | "Trabalha"; family: string; money: number; dailyIncome: number; dailyExpense: number; }
 export interface GameState {
   schemaVersion: 1; campaignName: string; date: string; day: number;
   selectedCountryId: string; selectedTerritoryId: string;
