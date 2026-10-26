@@ -64,3 +64,6 @@ body:has(.gameplay-shell) { overflow:hidden; }
 .city-row strong { color:#e2eaf1; font-weight:600; }
 .gameplay-shell .time-running { color:#f0b475; white-space:nowrap; }
 .gameplay-shell .time-toggle { border-color:#536474; }
+
+.geojson-import { display:inline-flex; align-items:center; cursor:pointer; }
+.geojson-import input { display:none; }
