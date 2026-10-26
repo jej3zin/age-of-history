@@ -89,7 +89,7 @@ export async function loadGame(): Promise<GameState | null> {
   }
 
   if (state.citizenProfile) {
-    const profile = state.citizenProfile as Partial<GameState["citizenProfile"]>;
+    const profile = state.citizenProfile as Partial<NonNullable<GameState["citizenProfile"]>>;
     state.citizenProfile = {
       name: typeof profile.name === "string" ? profile.name : "Cidadão",
       profession: profile.profession === "Estudante" ? "Estudante" : "Trabalha",
