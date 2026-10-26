@@ -243,7 +243,7 @@ export async function loadSaveSlot(id: string): Promise<GameState> {
   let value: unknown;
   try { value = await readRequest(db, "readonly", store => store.get(slotKey(id))); }
   finally { db.close(); }
-  return normalizeAndValidate(value);
+  return migrateStoredRecord(value);
 }
 
 export async function renameSaveSlot(id: string, name: string): Promise<void> {
