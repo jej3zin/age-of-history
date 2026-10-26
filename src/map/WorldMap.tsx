@@ -7,18 +7,43 @@ type Props = { state: GameState; onSelectTerritory: (id: string) => void };
 const MAP_WIDTH = 760;
 const MAP_HEIGHT = 470;
 
-function drawPolygon(g: Graphics, points: MapPosition[], color: number, selected: boolean) {
+function drawPolygon(g: Graphics, points: MapPosition[], holes: MapPosition[][], color: number, selected: boolean) {
   const first = points[0];
   if (!first) return;
   g.moveTo(first[0], first[1]);
   points.slice(1).forEach((p) => g.lineTo(p[0], p[1]));
   g.closePath();
   g.fill({ color, alpha: selected ? 1 : 0.84 });
+  for (const hole of holes) {
+    if (!hole[0]) continue;
+    g.moveTo(hole[0][0], hole[0][1]);
+    hole.slice(1).forEach((p) => g.lineTo(p[0], p[1]));
+    g.closePath();
+    g.cut();
+  }
   g.stroke({ color: selected ? 0xffd18a : 0x18212c, width: selected ? 4 : 3 });
+  for (const hole of holes) {
+    if (!hole[0]) continue;
+    g.moveTo(hole[0][0], hole[0][1]);
+    hole.slice(1).forEach((p) => g.lineTo(p[0], p[1]));
+    g.closePath();
+    g.stroke({ color: 0x18212c, width: 2 });
+  }
 }
 
 function territoryPolygons(territory: Territory): MapPosition[][] {
   return territory.polygons?.length ? territory.polygons : [territory.points];
+}
+
+function pointInRing(point: MapPosition, ring: MapPosition[]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i], b = ring[j];
+    const crosses = (a[1] > point[1]) !== (b[1] > point[1]) &&
+      point[0] < ((b[0] - a[0]) * (point[1] - a[1])) / ((b[1] - a[1]) || Number.EPSILON) + a[0];
+    if (crosses) inside = !inside;
+  }
+  return inside;
 }
 
 export default function WorldMap({ state, onSelectTerritory }: Props) {
@@ -111,16 +136,20 @@ export default function WorldMap({ state, onSelectTerritory }: Props) {
           for (const territory of s.territories) {
             const country = s.countries.find((c) => c.id === territory.countryId);
             const selected = territory.id === s.selectedTerritoryId;
-            for (const points of territoryPolygons(territory)) {
+            for (const [polygonIndex, points] of territoryPolygons(territory).entries()) {
+              const holes = territory.polygonHoles?.[polygonIndex] ?? [];
               const shape = new Graphics();
-              drawPolygon(shape, points, country?.color ?? 0x778899, selected);
+              drawPolygon(shape, points, holes, country?.color ?? 0x778899, selected);
               shape.eventMode = "static";
               shape.cursor = "pointer";
-              shape.on("pointertap", () => {
+              shape.on("pointertap", (event) => {
                 if (dragged) {
                   dragged = false;
                   return;
                 }
+                const local = world.toLocal(event.global);
+                const point: MapPosition = [local.x, local.y];
+                if (!pointInRing(point, points) || holes.some(hole => pointInRing(point, hole))) return;
                 callback.current(territory.id);
               });
               world.addChild(shape);
