@@ -111,7 +111,38 @@ export default function App() {
     setTimeSpeed(0);
     navigate("setup");
   };
-  async function importCampaign(file: File) {\n    setBusy(true);\n    try {\n      const imported = parseCampaignFile(await file.text());\n      setState(imported);\n      setTimeSpeed(0);\n      setNotice(`Campanha importada de ${file.name}. A simulação foi pausada.`);\n      navigate("gameplay");\n    } catch (error) {\n      setNotice("Falha ao importar campanha: " + (error instanceof Error ? error.message : "arquivo inválido"));\n    } finally { setBusy(false); }\n  }\n\n  function exportCampaign() {\n    try {\n      const blob = new Blob([serializeCampaign(state)], { type: "application/json;charset=utf-8" });\n      const url = URL.createObjectURL(blob);\n      const anchor = document.createElement("a");\n      anchor.href = url;\n      const safeName = state.campaignName.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "campanha";\n      anchor.download = `${safeName}-age-of-history.json`;\n      document.body.appendChild(anchor);\n      anchor.click();\n      anchor.remove();\n      window.setTimeout(() => URL.revokeObjectURL(url), 1000);\n      setNotice("Exportação da campanha preparada em arquivo JSON.");\n    } catch (error) {\n      setNotice("Não foi possível exportar: " + (error instanceof Error ? error.message : "erro desconhecido"));\n    }\n  }\n\n  async function save() {
+  async function importCampaign(file: File) {
+    setBusy(true);
+    try {
+      const imported = parseCampaignFile(await file.text());
+      setState(imported);
+      setTimeSpeed(0);
+      setNotice(`Campanha importada de ${file.name}. A simulação foi pausada.`);
+      navigate("gameplay");
+    } catch (error) {
+      setNotice("Falha ao importar campanha: " + (error instanceof Error ? error.message : "arquivo inválido"));
+    } finally { setBusy(false); }
+  }
+
+  function exportCampaign() {
+    try {
+      const blob = new Blob([serializeCampaign(state)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      const safeName = state.campaignName.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "campanha";
+      anchor.download = `${safeName}-age-of-history.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice("Exportação da campanha preparada em arquivo JSON.");
+    } catch (error) {
+      setNotice("Não foi possível exportar: " + (error instanceof Error ? error.message : "erro desconhecido"));
+    }
+  }
+
+  async function save() {
     setBusy(true);
     try { await saveGame(state); setNotice("Campanha salva neste navegador."); }
     catch (error) { setNotice("Não foi possível salvar: " + (error instanceof Error ? error.message : "erro desconhecido")); }
